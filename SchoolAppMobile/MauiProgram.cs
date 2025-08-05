@@ -1,4 +1,5 @@
 ﻿using Microsoft.Extensions.Logging;
+using SchoolAppMobile.Services;
 
 namespace SchoolAppMobile
 {
@@ -18,6 +19,9 @@ namespace SchoolAppMobile
 #if DEBUG
     		builder.Logging.AddDebug();
 #endif
+
+            builder.Services.AddSingleton<IApiService, ApiService>();
+
 
             return builder.Build();
         }
