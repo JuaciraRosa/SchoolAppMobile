@@ -1,43 +1,45 @@
+﻿using SchoolAppMobile.Models;
 using SchoolAppMobile.Services;
 
 namespace SchoolAppMobile.Views;
 
 public partial class LoginPage : ContentPage
 {
-    private readonly ApiService _apiService = new();
+    private readonly IApiService _apiService;
 
     public LoginPage()
     {
         InitializeComponent();
+        _apiService = ServiceHelper.GetService<IApiService>();
     }
-
     private async void OnLoginClicked(object sender, EventArgs e)
     {
-        ErrorLabel.IsVisible = false;
-
         var email = EmailEntry.Text;
         var password = PasswordEntry.Text;
 
-        if (string.IsNullOrWhiteSpace(email) || string.IsNullOrWhiteSpace(password))
+        var loginData = new LoginDto
         {
-            ErrorLabel.Text = "Please enter email and password.";
-            ErrorLabel.IsVisible = true;
-            return;
-        }
+            Email = email,
+            Password = password
+        };
 
-        var token = await _apiService.LoginAsync(email, password);
-
-        if (string.IsNullOrEmpty(token))
+        try
         {
-            ErrorLabel.Text = "Login failed. Check your credentials.";
-            ErrorLabel.IsVisible = true;
-            return;
+            var token = await _apiService.LoginAsync(loginData);
+            if (!string.IsNullOrEmpty(token))
+            {
+                Preferences.Set("jwt_token", token);
+                await Shell.Current.GoToAsync("//HomePage");
+            }
+            else
+            {
+                await DisplayAlert("Error", "Invalid credentials", "OK");
+            }
+
         }
-
-        // Salvar o token para uso futuro (em Preferences por exemplo)
-        Preferences.Set("auth_token", token);
-
-        // Navegar para HomePage (criaremos em seguida)
-        await Shell.Current.GoToAsync("//home");
+        catch (Exception ex)
+        {
+            await DisplayAlert("Error", ex.Message, "OK");
+        }
     }
 }

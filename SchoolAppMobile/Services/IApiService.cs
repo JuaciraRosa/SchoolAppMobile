@@ -1,4 +1,5 @@
-﻿using System;
+﻿using SchoolAppMobile.Models;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -13,7 +14,8 @@ namespace SchoolAppMobile.Services
         Task<bool> PostAsync<T>(string endpoint, T data);
         Task<string?> GetToken(); // para acesso ao token se necessário
 
-        Task<string?> LoginAsync(string email, string password);
+        Task<string?> LoginAsync(LoginDto loginDto);
+
 
     }
 }

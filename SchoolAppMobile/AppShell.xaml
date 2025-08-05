@@ -3,10 +3,19 @@
     x:Class="SchoolAppMobile.AppShell"
     xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
     xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
-    xmlns:local="clr-namespace:SchoolAppMobile"
+    xmlns:local="clr-namespace:SchoolAppMobile.Views"
     Shell.FlyoutBehavior="Disabled"
     Title="SchoolAppMobile">
-
     <ShellContent Title="Login" ContentTemplate="{DataTemplate views:LoginPage}" Route="LoginPage" />
     <ShellContent Title="Home" ContentTemplate="{DataTemplate views:HomePage}" Route="HomePage" />
+    <ShellContent Title="Marks" ContentTemplate="{DataTemplate views:MarksPage}" Route="MarksPage" />
+    <ShellContent Title="Absences" ContentTemplate="{DataTemplate views:AbsencesPage}" Route="AbsencesPage" />
+    <ShellContent Title="Notifications" ContentTemplate="{DataTemplate views:NotificationsPage}" Route="NotificationsPage" />
+    <ShellContent Title="Profile" ContentTemplate="{DataTemplate views:ProfilePage}" Route="ProfilePage" />
+    <ShellContent Title="StaffStudents" ContentTemplate="{DataTemplate views:StaffStudentsPage}" Route="StaffStudentsPage" />
+    <ShellContent Title="RegisterMark" ContentTemplate="{DataTemplate views:RegisterMarkPage}" Route="RegisterMarkPage" />
+    <ShellContent Title="Averages" ContentTemplate="{DataTemplate views:AveragesPage}" Route="AveragesPage" />
+    <ShellContent Title="EnrollmentRequests" ContentTemplate="{DataTemplate views:EnrollmentRequestsPage}" Route="EnrollmentRequestsPage" />
+    <ShellContent Title="Settings" ContentTemplate="{DataTemplate views:SettingsPage}" Route="SettingsPage" />
+
 </Shell>

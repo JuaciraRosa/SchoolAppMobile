@@ -1,4 +1,5 @@
-﻿using System;
+﻿using SchoolAppMobile.Models;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net.Http.Headers;
@@ -68,15 +69,9 @@ namespace SchoolAppMobile.Services
             return Task.FromResult(Preferences.Get("jwt_token", null));
         }
 
-        public async Task<string?> LoginAsync(string email, string password)
+        public async Task<string?> LoginAsync(LoginDto loginDto)
         {
-            var loginData = new
-            {
-                Email = email,
-                Password = password
-            };
-
-            var json = JsonSerializer.Serialize(loginData, _jsonOptions);
+            var json = JsonSerializer.Serialize(loginDto, _jsonOptions);
             var content = new StringContent(json, Encoding.UTF8, "application/json");
 
             var response = await _httpClient.PostAsync("auth/login", content);
@@ -91,7 +86,7 @@ namespace SchoolAppMobile.Services
                 var token = tokenElement.GetString();
                 if (!string.IsNullOrEmpty(token))
                 {
-                    Preferences.Set("jwt_token", token); // salva o token localmente
+                    Preferences.Set("jwt_token", token); // salva localmente
                     return token;
                 }
             }
