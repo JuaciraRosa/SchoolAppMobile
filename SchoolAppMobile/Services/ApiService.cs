@@ -67,5 +67,37 @@ namespace SchoolAppMobile.Services
         {
             return Task.FromResult(Preferences.Get("jwt_token", null));
         }
+
+        public async Task<string?> LoginAsync(string email, string password)
+        {
+            var loginData = new
+            {
+                Email = email,
+                Password = password
+            };
+
+            var json = JsonSerializer.Serialize(loginData, _jsonOptions);
+            var content = new StringContent(json, Encoding.UTF8, "application/json");
+
+            var response = await _httpClient.PostAsync("auth/login", content);
+
+            if (!response.IsSuccessStatusCode) return null;
+
+            var responseBody = await response.Content.ReadAsStringAsync();
+            using var doc = JsonDocument.Parse(responseBody);
+
+            if (doc.RootElement.TryGetProperty("token", out var tokenElement))
+            {
+                var token = tokenElement.GetString();
+                if (!string.IsNullOrEmpty(token))
+                {
+                    Preferences.Set("jwt_token", token); // salva o token localmente
+                    return token;
+                }
+            }
+
+            return null;
+        }
+
     }
 }

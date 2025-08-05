@@ -12,5 +12,8 @@ namespace SchoolAppMobile.Services
         Task<List<T>> GetListAsync<T>(string endpoint);
         Task<bool> PostAsync<T>(string endpoint, T data);
         Task<string?> GetToken(); // para acesso ao token se necessário
+
+        Task<string?> LoginAsync(string email, string password);
+
     }
 }
