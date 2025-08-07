@@ -1,6 +1,7 @@
 ﻿using SchoolAppMobile.Models;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Net.Http.Headers;
 using System.Text;
@@ -30,18 +31,27 @@ namespace SchoolAppMobile.Services
         private async Task AddJwtHeaderAsync()
         {
             var token = await GetToken();
-            _httpClient.DefaultRequestHeaders.Authorization =
-                new AuthenticationHeaderValue("Bearer", token);
+            _httpClient.DefaultRequestHeaders.Authorization = null; // limpa qualquer valor anterior
+
+            if (!string.IsNullOrEmpty(token))
+            {
+                _httpClient.DefaultRequestHeaders.Authorization =
+                    new AuthenticationHeaderValue("Bearer", token);
+            }
         }
+
 
         public async Task<T?> GetAsync<T>(string endpoint)
         {
             await AddJwtHeaderAsync();
             var response = await _httpClient.GetAsync(endpoint);
-            if (!response.IsSuccessStatusCode) return default;
+            var body = await response.Content.ReadAsStringAsync();
 
-            var json = await response.Content.ReadAsStringAsync();
-            return JsonSerializer.Deserialize<T>(json, _jsonOptions);
+            Console.WriteLine($"GET {endpoint} => {response.StatusCode}");
+            Console.WriteLine("Response: " + body);
+
+            if (!response.IsSuccessStatusCode) return default;
+            return JsonSerializer.Deserialize<T>(body, _jsonOptions);
         }
 
         public async Task<List<T>> GetListAsync<T>(string endpoint)
@@ -57,12 +67,35 @@ namespace SchoolAppMobile.Services
         public async Task<bool> PostAsync<T>(string endpoint, T data)
         {
             await AddJwtHeaderAsync();
+
             var json = JsonSerializer.Serialize(data, _jsonOptions);
             var content = new StringContent(json, Encoding.UTF8, "application/json");
 
-            var response = await _httpClient.PostAsync(endpoint, content);
-            return response.IsSuccessStatusCode;
+            HttpResponseMessage response;
+
+            try
+            {
+                response = await _httpClient.PostAsync(endpoint, content);
+            }
+            catch (Exception ex)
+            {
+                // Mostra erro genérico de rede (sem console)
+                await Shell.Current.DisplayAlert("Erro", "Erro de rede: " + ex.Message, "OK");
+                return false;
+            }
+
+            var responseBody = await response.Content.ReadAsStringAsync();
+
+            if (!response.IsSuccessStatusCode)
+            {
+                //  Mostra erro vindo da API
+                await Shell.Current.DisplayAlert("Erro", $"API retornou {response.StatusCode}\n{responseBody}", "OK");
+                return false;
+            }
+
+            return true;
         }
+
 
         public Task<string?> GetToken()
         {
@@ -76,7 +109,11 @@ namespace SchoolAppMobile.Services
 
             var response = await _httpClient.PostAsync("auth/login", content);
 
-            if (!response.IsSuccessStatusCode) return null;
+            if (!response.IsSuccessStatusCode)
+            {
+                Debug.WriteLine(" Login falhou com status: " + response.StatusCode);
+                return null;
+            }
 
             var responseBody = await response.Content.ReadAsStringAsync();
             using var doc = JsonDocument.Parse(responseBody);
@@ -87,12 +124,87 @@ namespace SchoolAppMobile.Services
                 if (!string.IsNullOrEmpty(token))
                 {
                     Preferences.Set("jwt_token", token); // salva localmente
+                    Debug.WriteLine(" JWT salvo: " + token); // <-- AQUI
                     return token;
                 }
             }
 
+            Debug.WriteLine("Token não encontrado na resposta.");
             return null;
         }
 
+        public async Task<bool> PostRawAsync(string endpoint, string rawString)
+        {
+            await AddJwtHeaderAsync();
+            var json = JsonSerializer.Serialize(rawString);
+            var content = new StringContent(json, Encoding.UTF8, "application/json");
+
+            var response = await _httpClient.PostAsync(endpoint, content);
+            var responseBody = await response.Content.ReadAsStringAsync();
+
+            Debug.WriteLine($" POST {endpoint} => {(int)response.StatusCode} {response.StatusCode}");
+            Debug.WriteLine(" Enviado: " + json);
+            Debug.WriteLine(" Recebido: " + responseBody);
+
+            return response.IsSuccessStatusCode;
+        }
+
+        public async Task<bool> UpdateStudentProfileAsync(string newUsername, FileResult? photoFile)
+        {
+            await AddJwtHeaderAsync(); // adiciona token JWT no cabeçalho
+
+            using var content = new MultipartFormDataContent();
+            content.Add(new StringContent(newUsername), "UserName");
+
+            if (photoFile != null)
+            {
+                try
+                {
+                    var stream = await photoFile.OpenReadAsync();
+                    var fileContent = new StreamContent(stream);
+
+                    // Define dinamicamente o tipo MIME com base na extensão
+                    var extension = Path.GetExtension(photoFile.FileName).ToLower();
+                    var contentType = extension switch
+                    {
+                        ".jpg" or ".jpeg" => "image/jpeg",
+                        ".png" => "image/png",
+                        ".gif" => "image/gif",
+                        _ => "application/octet-stream" // fallback
+                    };
+
+                    fileContent.Headers.ContentType = new MediaTypeHeaderValue(contentType);
+                    content.Add(fileContent, "ProfilePhoto", Path.GetFileName(photoFile.FileName));
+                }
+                catch (Exception ex)
+                {
+                    await Shell.Current.DisplayAlert("Erro", $"Erro ao carregar imagem: {ex.Message}", "OK");
+                    return false;
+                }
+            }
+
+            try
+            {
+                var response = await _httpClient.PutAsync("students/profile", content);
+                var responseText = await response.Content.ReadAsStringAsync();
+
+                Debug.WriteLine(" Update profile response: " + responseText);
+
+                return response.IsSuccessStatusCode;
+            }
+            catch (Exception ex)
+            {
+                await Shell.Current.DisplayAlert("Erro", $"Erro ao atualizar perfil: {ex.Message}", "OK");
+                return false;
+            }
+        }
+
+
+
+
+
+
     }
+
+
 }

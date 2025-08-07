@@ -20,7 +20,7 @@ public partial class HomePage : ContentPage
         var token = Preferences.Get("jwt_token", string.Empty);
         if (string.IsNullOrEmpty(token))
         {
-            await Shell.Current.GoToAsync("//LoginPage");
+            await Shell.Current.GoToAsync("///LoginPage");
             return;
         }
 
@@ -35,21 +35,24 @@ public partial class HomePage : ContentPage
         switch (role)
         {
             case "Student":
-                AddButton("Marks", async () => await Shell.Current.GoToAsync("MarksPage"));
-                AddButton("Absences", async () => await Shell.Current.GoToAsync("AbsencesPage"));
-                AddButton("Notifications", async () => await Shell.Current.GoToAsync("NotificationsPage"));
-                AddButton("Profile", async () => await Shell.Current.GoToAsync("ProfilePage"));
+                AddButton("Marks", async () => await Shell.Current.GoToAsync("///MarksPage"));
+                AddButton("Absences", async () => await Shell.Current.GoToAsync("///AbsencesPage"));
+                AddButton("Notifications", async () => await Shell.Current.GoToAsync("///NotificationsPage"));
+                AddButton("Profile", async () => await Shell.Current.GoToAsync("///ProfilePage"));
+                AddButton("Enrollment Request", async () => await Shell.Current.GoToAsync("///SendEnrollmentPage"));
                 break;
 
             case "StaffMember":
-                AddButton("My Students", async () => await Shell.Current.GoToAsync("StaffStudentsPage"));
-                AddButton("Register Mark", async () => await Shell.Current.GoToAsync("RegisterMarkPage"));
-                AddButton("Averages", async () => await Shell.Current.GoToAsync("AveragesPage"));
+                AddButton("My Students", async () => await Shell.Current.GoToAsync("///StaffStudentsPage"));
+                AddButton("Register Mark", async () => await Shell.Current.GoToAsync("///RegisterMarkPage"));
+                AddButton("Averages", async () => await Shell.Current.GoToAsync("///AveragesPage"));
+                AddButton("Alerts", async () => await Shell.Current.GoToAsync("///AlertsPage"));
                 break;
 
             case "Administrator":
-                AddButton("Enrollment Requests", async () => await Shell.Current.GoToAsync("EnrollmentRequestsPage"));
-                AddButton("System Settings", async () => await Shell.Current.GoToAsync("SettingsPage"));
+                AddButton("Enrollment Requests", async () => await Shell.Current.GoToAsync("///EnrollmentRequestsPage"));
+                AddButton("System Settings", async () => await Shell.Current.GoToAsync("///SettingsPage"));
+                AddButton("Alerts", async () => await Shell.Current.GoToAsync("///AlertsPage"));
                 break;
         }
     }
@@ -69,6 +72,6 @@ public partial class HomePage : ContentPage
     private async void OnLogoutClicked(object sender, EventArgs e)
     {
         Preferences.Remove("jwt_token");
-        await Shell.Current.GoToAsync("//LoginPage");
+        await Shell.Current.GoToAsync("///LoginPage");
     }
 }

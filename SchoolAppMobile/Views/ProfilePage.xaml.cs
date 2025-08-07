@@ -16,7 +16,7 @@ public partial class ProfilePage : ContentPage
 
     private async void LoadProfileAsync()
     {
-        var profile = await _apiService.GetAsync<ProfileDto>("students/profile");
+        var profile = await _apiService.GetAsync<StudentDto>("students/profile");
         if (profile == null) return;
 
         NameLabel.Text = $"Username: {profile.UserName}";
@@ -25,7 +25,24 @@ public partial class ProfilePage : ContentPage
 
         if (!string.IsNullOrEmpty(profile.ProfilePhoto))
         {
-            ProfilePhoto.Source = ImageSource.FromUri(new Uri(profile.ProfilePhoto));
+            // Garante que seja uma URL completa
+            if (!profile.ProfilePhoto.StartsWith("http"))
+            {
+                profile.ProfilePhoto = "https://www.escolainfosysapi.somee.com" + profile.ProfilePhoto;
+            }
+
+            ProfileImage.Source = ImageSource.FromUri(new Uri(profile.ProfilePhoto));
         }
+    }
+
+
+    private async void OnEditProfileClicked(object sender, EventArgs e)
+    {
+        await Navigation.PushAsync(new EditProfilePage());
+    }
+
+    private async void OnBackToHomeClicked(object sender, EventArgs e)
+    {
+        await Shell.Current.GoToAsync("///HomePage");
     }
 }

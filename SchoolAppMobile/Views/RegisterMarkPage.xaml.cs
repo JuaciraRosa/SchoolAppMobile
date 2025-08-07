@@ -1,3 +1,4 @@
+using SchoolAppMobile.Models;
 using SchoolAppMobile.Services;
 
 namespace SchoolAppMobile.Views;
@@ -22,7 +23,7 @@ public partial class RegisterMarkPage : ContentPage
             return;
         }
 
-        var newMark = new
+        var newMark = new RegisterMarkDto
         {
             StudentId = studentId,
             SubjectId = subjectId,
@@ -32,9 +33,17 @@ public partial class RegisterMarkPage : ContentPage
 
         var success = await _apiService.PostAsync("staff/marks", newMark);
 
+
+
         if (success)
             await DisplayAlert("Success", "Mark registered.", "OK");
         else
             await DisplayAlert("Error", "Failed to register mark.", "OK");
     }
+
+    private async void OnBackToHomeClicked(object sender, EventArgs e)
+    {
+        await Shell.Current.GoToAsync("///HomePage");
+    }
+
 }

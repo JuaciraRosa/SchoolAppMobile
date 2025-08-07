@@ -19,4 +19,9 @@ public partial class MarksPage : ContentPage
         var marks = await _apiService.GetListAsync<MarkDto>("students/marks");
         MarksCollection.ItemsSource = marks;
     }
+    private async void OnBackToHomeClicked(object sender, EventArgs e)
+    {
+        await Shell.Current.GoToAsync("///HomePage");
+    }
+
 }

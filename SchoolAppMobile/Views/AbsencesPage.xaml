@@ -4,17 +4,43 @@
              x:Class="SchoolAppMobile.Views.AbsencesPage"
       Title="My Absences">
 
-    <CollectionView x:Name="AbsencesCollection" Margin="10">
-        <CollectionView.ItemTemplate>
-            <DataTemplate>
-                <Frame Margin="5" Padding="10" BorderColor="Gray">
-                    <StackLayout>
-                        <Label Text="{Binding Subject}" FontAttributes="Bold" />
-                        <Label Text="{Binding Date, StringFormat='Date: {0:dd/MM/yyyy}'}" />
-                        <Label Text="{Binding Justified, StringFormat='Justified: {0}'}" />
-                    </StackLayout>
-                </Frame>
-            </DataTemplate>
-        </CollectionView.ItemTemplate>
-    </CollectionView>
+    <StackLayout Padding="20" Spacing="10">
+        <!-- Carregamento -->
+        <ActivityIndicator x:Name="LoadingIndicator"
+                           IsRunning="True"
+                           IsVisible="True"
+                           HorizontalOptions="Center" />
+
+        <!-- Nenhum resultado -->
+        <Label x:Name="NoDataLabel"
+               Text="No absences found."
+               IsVisible="False"
+               HorizontalOptions="Center"
+               TextColor="Gray" />
+
+        <!-- Lista de faltas -->
+        <CollectionView x:Name="AbsencesCollection"
+                        IsVisible="False">
+            <CollectionView.ItemTemplate>
+                <DataTemplate>
+                    <Frame BorderColor="DarkSlateBlue"
+                           CornerRadius="10"
+                           Padding="10"
+                           Margin="5">
+                        <StackLayout>
+                            <Label Text="{Binding SubjectName}" FontAttributes="Bold" />
+                            <Label Text="{Binding Date}" />
+                            <Label Text="{Binding Justified, StringFormat='Justified: {0}'}" />
+                        </StackLayout>
+                    </Frame>
+                </DataTemplate>
+            </CollectionView.ItemTemplate>
+        </CollectionView>
+
+        <Button Text="Back to Home"
+                Clicked="OnBackToHomeClicked"
+                BackgroundColor="DarkSlateBlue"
+                TextColor="White"
+                Margin="0,20,0,0" />
+    </StackLayout>
 </ContentPage>

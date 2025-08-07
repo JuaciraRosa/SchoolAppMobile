@@ -6,16 +6,24 @@
     xmlns:local="clr-namespace:SchoolAppMobile.Views"
     Shell.FlyoutBehavior="Disabled"
     Title="SchoolAppMobile">
-    <ShellContent Title="Login" ContentTemplate="{DataTemplate views:LoginPage}" Route="LoginPage" />
-    <ShellContent Title="Home" ContentTemplate="{DataTemplate views:HomePage}" Route="HomePage" />
-    <ShellContent Title="Marks" ContentTemplate="{DataTemplate views:MarksPage}" Route="MarksPage" />
-    <ShellContent Title="Absences" ContentTemplate="{DataTemplate views:AbsencesPage}" Route="AbsencesPage" />
-    <ShellContent Title="Notifications" ContentTemplate="{DataTemplate views:NotificationsPage}" Route="NotificationsPage" />
-    <ShellContent Title="Profile" ContentTemplate="{DataTemplate views:ProfilePage}" Route="ProfilePage" />
-    <ShellContent Title="StaffStudents" ContentTemplate="{DataTemplate views:StaffStudentsPage}" Route="StaffStudentsPage" />
-    <ShellContent Title="RegisterMark" ContentTemplate="{DataTemplate views:RegisterMarkPage}" Route="RegisterMarkPage" />
-    <ShellContent Title="Averages" ContentTemplate="{DataTemplate views:AveragesPage}" Route="AveragesPage" />
-    <ShellContent Title="EnrollmentRequests" ContentTemplate="{DataTemplate views:EnrollmentRequestsPage}" Route="EnrollmentRequestsPage" />
-    <ShellContent Title="Settings" ContentTemplate="{DataTemplate views:SettingsPage}" Route="SettingsPage" />
+
+    <ShellContent Title="Login" ContentTemplate="{DataTemplate local:LoginPage}" Route="LoginPage" />
+    <ShellContent Title="Home" ContentTemplate="{DataTemplate local:HomePage}" Route="HomePage" />
+    <ShellContent Title="Marks" ContentTemplate="{DataTemplate local:MarksPage}" Route="MarksPage" />
+    <ShellContent Title="Absences" ContentTemplate="{DataTemplate local:AbsencesPage}" Route="AbsencesPage" />
+    <ShellContent Title="Notifications" ContentTemplate="{DataTemplate local:NotificationsPage}" Route="NotificationsPage" />
+    <ShellContent Title="Profile" ContentTemplate="{DataTemplate local:ProfilePage}" Route="ProfilePage" />
+    <ShellContent Title="StaffStudents" ContentTemplate="{DataTemplate local:StaffStudentsPage}" Route="StaffStudentsPage" />
+    <ShellContent Title="RegisterMark" ContentTemplate="{DataTemplate local:RegisterMarkPage}" Route="RegisterMarkPage" />
+    <ShellContent Title="Averages" ContentTemplate="{DataTemplate local:AveragesPage}" Route="AveragesPage" />
+    <ShellContent Title="EnrollmentRequests" ContentTemplate="{DataTemplate local:EnrollmentRequestsPage}" Route="EnrollmentRequestsPage" />
+    <ShellContent Title="Settings" ContentTemplate="{DataTemplate local:SettingsPage}" Route="SettingsPage" />
+    <ShellContent Title="Alerts" ContentTemplate="{DataTemplate local:AlertsPage}" Route="AlertsPage" />
+    <ShellContent Title="Send Request" ContentTemplate="{DataTemplate local:SendEnrollmentPage}" Route="SendEnrollmentPage" />
+    <ShellContent Route="EditProfilePage"
+              ContentTemplate="{DataTemplate local:EditProfilePage}" />
+
+
+
 
 </Shell>

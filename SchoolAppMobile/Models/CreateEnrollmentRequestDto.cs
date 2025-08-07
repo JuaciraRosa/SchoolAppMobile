@@ -6,9 +6,9 @@ using System.Threading.Tasks;
 
 namespace SchoolAppMobile.Models
 {
-    public class LoginDto
+    public class CreateEnrollmentRequestDto
     {
-        public string Email { get; set; } = string.Empty;
-        public string Password { get; set; } = string.Empty;
+        public string? Message { get; set; }
     }
+
 }

@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="SchoolAppMobile.Views.EditProfilePage"
+       Title="Edit Profile">
+
+    <ScrollView Padding="20">
+        <VerticalStackLayout Spacing="20">
+
+            <Image x:Name="ProfileImage"
+                   HeightRequest="150"
+                   WidthRequest="150"
+                   Aspect="AspectFill"
+                   HorizontalOptions="Center"
+                   VerticalOptions="Center"
+                   BackgroundColor="LightGray"
+                   Margin="0,10" />
+
+            <Button Text="Select New Photo"
+                    Clicked="OnSelectPhotoClicked" />
+
+            <Entry x:Name="UsernameEntry"
+                   Placeholder="Enter new username" />
+
+            <Button Text="Save Changes"
+                    Clicked="OnSaveClicked"
+                    BackgroundColor="DarkGreen"
+                    TextColor="White" />
+        </VerticalStackLayout>
+    </ScrollView>
+</ContentPage>

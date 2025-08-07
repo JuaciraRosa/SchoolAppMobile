@@ -6,9 +6,9 @@ using System.Threading.Tasks;
 
 namespace SchoolAppMobile.Models
 {
-    public class LoginDto
+    public class SystemSettingsDto
     {
-        public string Email { get; set; } = string.Empty;
-        public string Password { get; set; } = string.Empty;
+        public int MaxAbsencesPercentage { get; set; }
     }
+
 }

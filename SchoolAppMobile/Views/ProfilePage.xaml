@@ -2,16 +2,28 @@
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              x:Class="SchoolAppMobile.Views.ProfilePage"
-                   Title="My Profile">
+      Title="My Profile">
     <ScrollView>
         <StackLayout Padding="20" Spacing="15">
-            <Label Text="Student Profile" FontSize="24" FontAttributes="Bold" HorizontalOptions="Center" />
+            <Image x:Name="ProfileImage"
+                   HeightRequest="100"
+                   WidthRequest="100"
+                   HorizontalOptions="Center"
+                   Aspect="AspectFill"
+                   BackgroundColor="LightGray"
+                   Margin="0,20,0,0"/>
 
-            <Image x:Name="ProfilePhoto" HeightRequest="120" WidthRequest="120" HorizontalOptions="Center" />
+            <Label x:Name="NameLabel" FontSize="20" FontAttributes="Bold" HorizontalOptions="Center"/>
+            <Label x:Name="EmailLabel" FontSize="16" HorizontalOptions="Center"/>
+            <Label x:Name="CourseLabel" FontSize="16" HorizontalOptions="Center"/>
 
-            <Label x:Name="NameLabel" FontSize="18" />
-            <Label x:Name="EmailLabel" FontSize="18" />
-            <Label x:Name="CourseLabel" FontSize="18" />
+            <Button Text="Back to Home" Clicked="OnBackToHomeClicked"
+                    BackgroundColor="DarkSlateBlue" TextColor="White" />
+            <Button Text="Edit Profile"
+        Clicked="OnEditProfileClicked"
+        BackgroundColor="DarkBlue"
+        TextColor="White"
+        Margin="0,20,0,0" />
         </StackLayout>
     </ScrollView>
 </ContentPage>

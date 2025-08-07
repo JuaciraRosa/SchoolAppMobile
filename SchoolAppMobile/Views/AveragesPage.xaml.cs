@@ -16,9 +16,20 @@ public partial class AveragesPage : ContentPage
 
     private async void LoadAverages()
     {
-        var averages = await _apiService.GetListAsync<AverageDto>("staff/averages");
-        AveragesListView.ItemsSource = averages;
+        try
+        {
+            var averages = await _apiService.GetListAsync<AverageDto>("staff/averages");
+            AveragesListView.ItemsSource = averages;
+        }
+        catch (Exception ex)
+        {
+            await DisplayAlert("Error", $"Failed to load averages: {ex.Message}", "OK");
+        }
     }
 
-    
+    private async void OnBackToHomeClicked(object sender, EventArgs e)
+    {
+        await Shell.Current.GoToAsync("///HomePage");
+    }
+
 }

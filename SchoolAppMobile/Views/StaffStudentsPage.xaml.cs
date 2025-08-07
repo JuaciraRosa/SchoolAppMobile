@@ -27,4 +27,10 @@ public partial class StaffStudentsPage : ContentPage
             await Shell.Current.GoToAsync($"StudentDetailsPage?studentId={student.Id}");
         }
     }
+
+    private async void OnBackToHomeClicked(object sender, EventArgs e)
+    {
+        await Shell.Current.GoToAsync("///HomePage");
+    }
+
 }

@@ -11,6 +11,6 @@ namespace SchoolAppMobile.Models
         public string Subject { get; set; }
         public double Value { get; set; }
         public bool IsPassed { get; set; }
-        public DateTime Date { get; set; }
+        public string Date { get; set; }
     }
 }
