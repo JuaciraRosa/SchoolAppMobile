@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Net.Http.Headers;
+using System.Net.Http.Json;
 using System.Text;
 using System.Text.Json;
 using System.Threading.Tasks;
@@ -198,6 +199,48 @@ namespace SchoolAppMobile.Services
                 return false;
             }
         }
+
+        public async Task<bool> ForgotPasswordAsync(string email)
+        {
+            var dto = new ForgotPasswordDto { Email = email };
+
+            var response = await _httpClient.PostAsJsonAsync("auth/forgot-password", dto);
+            return response.IsSuccessStatusCode;
+        }
+
+        public async Task<bool> ResetPasswordAsync(string email, string token, string newPassword)
+        {
+            var payload = new
+            {
+                Email = email,
+                Token = token,
+                NewPassword = newPassword
+            };
+
+            var json = JsonSerializer.Serialize(payload);
+            var content = new StringContent(json, Encoding.UTF8, "application/json");
+
+            var response = await _httpClient.PostAsync("auth/reset-password", content);
+            return response.IsSuccessStatusCode;
+        }
+
+
+        public async Task<bool> ChangePasswordAsync(ChangePasswordDto dto)
+        {
+            await AddJwtHeaderAsync();
+
+            try
+            {
+                var response = await _httpClient.PostAsJsonAsync("auth/change-password", dto);
+                return response.IsSuccessStatusCode;
+            }
+            catch
+            {
+                return false;
+            }
+        }
+
+
 
 
 

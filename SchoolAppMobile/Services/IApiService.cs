@@ -18,6 +18,14 @@ namespace SchoolAppMobile.Services
 
         Task<bool> UpdateStudentProfileAsync(string newUsername, FileResult? photoFile);
 
+        Task<bool> ForgotPasswordAsync(string email);
+
+        Task<bool> ResetPasswordAsync(string email, string token, string newPassword);
+
+        Task<bool> ChangePasswordAsync(ChangePasswordDto dto);
+
+
+
 
     }
 }

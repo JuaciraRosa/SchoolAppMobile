@@ -69,6 +69,11 @@ public partial class HomePage : ContentPage
         ButtonsPanel.Children.Add(btn);
     }
 
+    private async void OnCreditsClicked(object sender, EventArgs e)
+    {
+        await Shell.Current.GoToAsync("CreditsPage");
+    }
+
     private async void OnLogoutClicked(object sender, EventArgs e)
     {
         Preferences.Remove("jwt_token");

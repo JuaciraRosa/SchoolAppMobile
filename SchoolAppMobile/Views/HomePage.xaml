@@ -8,17 +8,27 @@
     <ScrollView>
         <VerticalStackLayout Padding="20" Spacing="15">
             <Label x:Name="WelcomeLabel"
-                   FontSize="24"
-                   HorizontalOptions="Center"
-                   TextColor="DarkBlue"/>
+               FontSize="24"
+               HorizontalOptions="Center"
+               TextColor="DarkBlue"/>
 
             <StackLayout x:Name="ButtonsPanel" Spacing="10"/>
 
+            <!-- Botão de créditos -->
+            <Button Text="📘 Sobre o App"
+                BackgroundColor="#007AFF"
+                TextColor="White"
+                CornerRadius="10"
+                Padding="10"
+                Clicked="OnCreditsClicked"/>
+
+            <!-- Botão de logout -->
             <Button Text="Logout"
-                    BackgroundColor="DarkRed"
-                    TextColor="White"
-                    Clicked="OnLogoutClicked"/>
+                BackgroundColor="DarkRed"
+                TextColor="White"
+                Clicked="OnLogoutClicked"/>
         </VerticalStackLayout>
     </ScrollView>
-    
+
+
 </ContentPage>
