@@ -156,22 +156,20 @@ namespace SchoolAppMobile.Services
 
             using var content = new MultipartFormDataContent();
             content.Add(new StringContent(newUsername), "UserName");
-
             if (photoFile != null)
             {
                 try
                 {
-                    var stream = await photoFile.OpenReadAsync();
+                    using var stream = await photoFile.OpenReadAsync();
                     var fileContent = new StreamContent(stream);
 
-                    // Define dinamicamente o tipo MIME com base na extensão
                     var extension = Path.GetExtension(photoFile.FileName).ToLower();
                     var contentType = extension switch
                     {
                         ".jpg" or ".jpeg" => "image/jpeg",
                         ".png" => "image/png",
                         ".gif" => "image/gif",
-                        _ => "application/octet-stream" // fallback
+                        _ => "application/octet-stream"
                     };
 
                     fileContent.Headers.ContentType = new MediaTypeHeaderValue(contentType);
@@ -183,6 +181,7 @@ namespace SchoolAppMobile.Services
                     return false;
                 }
             }
+
 
             try
             {

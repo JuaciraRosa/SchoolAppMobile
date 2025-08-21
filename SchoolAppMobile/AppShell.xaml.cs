@@ -6,8 +6,12 @@
         {
             InitializeComponent();
 
-       
+            Routing.RegisterRoute(nameof(SchoolAppMobile.Views.ResetPasswordPage),
+                      typeof(SchoolAppMobile.Views.ResetPasswordPage));
 
         }
+
+      
+
     }
 }

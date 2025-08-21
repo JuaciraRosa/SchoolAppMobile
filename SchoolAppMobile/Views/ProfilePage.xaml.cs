@@ -25,12 +25,6 @@ public partial class ProfilePage : ContentPage
 
         if (!string.IsNullOrEmpty(profile.ProfilePhoto))
         {
-            // Garante que seja uma URL completa
-            if (!profile.ProfilePhoto.StartsWith("http"))
-            {
-                profile.ProfilePhoto = "https://www.escolainfosysapi.somee.com" + profile.ProfilePhoto;
-            }
-
             ProfileImage.Source = ImageSource.FromUri(new Uri(profile.ProfilePhoto));
         }
     }

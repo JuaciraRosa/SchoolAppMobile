@@ -46,10 +46,15 @@ public partial class EditProfilePage : ContentPage
 
     private async void OnSaveClicked(object sender, EventArgs e)
     {
+        SaveButton.IsEnabled = false;
+        SaveButton.Text = "Saving...";
+
         var newUsername = UsernameEntry.Text?.Trim();
         if (string.IsNullOrEmpty(newUsername))
         {
             await DisplayAlert("Validation", "Username cannot be empty", "OK");
+            SaveButton.IsEnabled = true;
+            SaveButton.Text = "Save Changes";
             return;
         }
 
@@ -58,11 +63,15 @@ public partial class EditProfilePage : ContentPage
         if (success)
         {
             await DisplayAlert("Success", "Profile updated successfully!", "OK");
-            await Shell.Current.GoToAsync(".."); // volta para a página anterior
+            await Shell.Current.GoToAsync("..");
         }
         else
         {
             await DisplayAlert("Error", "Failed to update profile", "OK");
         }
+
+        SaveButton.IsEnabled = true;
+        SaveButton.Text = "Save Changes";
     }
+
 }

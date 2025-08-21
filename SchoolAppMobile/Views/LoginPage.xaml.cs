@@ -42,4 +42,10 @@ public partial class LoginPage : ContentPage
             await DisplayAlert("Error", ex.Message, "OK");
         }
     }
+
+    private async void OnForgotClicked(object sender, EventArgs e)
+    {
+        await Shell.Current.GoToAsync("///ForgotPasswordPage");
+    }
+
 }

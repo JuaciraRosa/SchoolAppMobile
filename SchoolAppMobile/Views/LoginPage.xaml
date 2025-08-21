@@ -13,6 +13,10 @@
             <Button Text="Login" Clicked="OnLoginClicked" />
 
             <Label x:Name="ErrorLabel" TextColor="Red" IsVisible="False" />
+
+            <Button Text="Forgot Password" Clicked="OnForgotClicked" />
+
+
         </VerticalStackLayout>
     </ScrollView>
 </ContentPage>

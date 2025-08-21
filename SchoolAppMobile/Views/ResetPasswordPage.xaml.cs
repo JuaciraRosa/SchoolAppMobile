@@ -2,19 +2,19 @@ using SchoolAppMobile.Services;
 
 namespace SchoolAppMobile.Views;
 
+[QueryProperty(nameof(Email), "email")]
+[QueryProperty(nameof(Token), "token")]
 public partial class ResetPasswordPage : ContentPage
 {
     private readonly IApiService _apiService;
-    private readonly string _email;
-    private readonly string _token;
 
-    public ResetPasswordPage(string email, string token)
+    public string Email { get; set; }
+    public string Token { get; set; }
+
+    public ResetPasswordPage()
     {
         InitializeComponent();
         _apiService = ServiceHelper.GetService<IApiService>();
-
-        _email = email;
-        _token = token;
     }
 
     private async void OnResetPasswordClicked(object sender, EventArgs e)
@@ -28,7 +28,7 @@ public partial class ResetPasswordPage : ContentPage
             return;
         }
 
-        var result = await _apiService.ResetPasswordAsync(_email, _token, newPassword);
+        var result = await _apiService.ResetPasswordAsync(Email, Token, newPassword);
 
         if (result)
         {
@@ -41,3 +41,4 @@ public partial class ResetPasswordPage : ContentPage
         }
     }
 }
+
