@@ -240,6 +240,33 @@ namespace SchoolAppMobile.Services
         }
 
 
+        public async Task<List<CourseDto>> GetPublicCoursesAsync()
+        {
+            // NÃO chama AddJwtHeaderAsync aqui
+            var response = await _httpClient.GetAsync("public/courses");
+            if (!response.IsSuccessStatusCode) return new();
+            var json = await response.Content.ReadAsStringAsync();
+            return JsonSerializer.Deserialize<List<CourseDto>>(json, _jsonOptions) ?? new();
+        }
+
+        public async Task<List<SubjectDto>> GetPublicSubjectsAsync()
+        {
+            var response = await _httpClient.GetAsync("public/subjects");
+            if (!response.IsSuccessStatusCode) return new();
+            var json = await response.Content.ReadAsStringAsync();
+            return JsonSerializer.Deserialize<List<SubjectDto>>(json, _jsonOptions) ?? new();
+        }
+
+        public async Task<List<FormGroupDto>> GetPublicFormGroupsAsync()
+        {
+            var response = await _httpClient.GetAsync("public/formgroups");
+            if (!response.IsSuccessStatusCode) return new();
+            var json = await response.Content.ReadAsStringAsync();
+            return JsonSerializer.Deserialize<List<FormGroupDto>>(json, _jsonOptions) ?? new();
+        }
+
+
+
 
 
 

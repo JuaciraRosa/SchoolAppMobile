@@ -38,5 +38,13 @@ namespace SchoolAppMobile
 
             base.OnAppLinkRequestReceived(uri);
         }
+
+        protected override void OnStart()
+        {
+            var token = Preferences.Get("jwt_token", null);
+            if (!string.IsNullOrEmpty(token))
+                MainThread.BeginInvokeOnMainThread(async () => await Shell.Current.GoToAsync("//HomePage"));
+        }
+
     }
 }
