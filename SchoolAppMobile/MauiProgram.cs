@@ -1,5 +1,6 @@
 ﻿using Microsoft.Extensions.Logging;
 using SchoolAppMobile.Services;
+using SchoolAppMobile.Views;
 
 namespace SchoolAppMobile
 {
@@ -17,13 +18,28 @@ namespace SchoolAppMobile
                 });
 
 #if DEBUG
-    		builder.Logging.AddDebug();
+            builder.Logging.AddDebug();
 #endif
 
+            // Serviços
             builder.Services.AddSingleton<IApiService, ApiService>();
 
+   
+            builder.Services.AddSingleton<SendEnrollmentPage>();
+            builder.Services.AddSingleton<ExplorePage>();
+            builder.Services.AddSingleton<PublicSubjectsPage>();
+            builder.Services.AddSingleton<SubjectContentsPage>();
+
+       
+            builder.Services.AddSingleton<MarksPage>();
+            builder.Services.AddSingleton<AbsencesPage>();
+            builder.Services.AddSingleton<NotificationsPage>();
+            builder.Services.AddSingleton<ProfilePage>();
+            builder.Services.AddSingleton<LoginPage>();
+            builder.Services.AddSingleton<HomePage>();
 
             return builder.Build();
         }
     }
+
 }

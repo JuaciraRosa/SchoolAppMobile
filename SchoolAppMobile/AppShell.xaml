@@ -19,13 +19,13 @@
     <ShellContent Title="EnrollmentRequests" ContentTemplate="{DataTemplate local:EnrollmentRequestsPage}" Route="EnrollmentRequestsPage" />
     <ShellContent Title="Settings" ContentTemplate="{DataTemplate local:SettingsPage}" Route="SettingsPage" />
     <ShellContent Title="Alerts" ContentTemplate="{DataTemplate local:AlertsPage}" Route="AlertsPage" />
-    <ShellContent Title="Send Request" ContentTemplate="{DataTemplate local:SendEnrollmentPage}" Route="SendEnrollmentPage" />
+    <ShellContent Title="Send Enrollment Request" ContentTemplate="{DataTemplate local:SendEnrollmentPage}" Route="SendEnrollmentPage" />
+
     <ShellContent Route="EditProfilePage" ContentTemplate="{DataTemplate local:EditProfilePage}" />
-    <ShellContent Title="Forgot Password"  ContentTemplate="{DataTemplate local:ForgotPasswordPage}"  Route="ForgotPasswordPage" />
+    <ShellContent Title="Forgot Password" ContentTemplate="{DataTemplate local:ForgotPasswordPage}" Route="ForgotPasswordPage" />
     <ShellContent Title="Reset Password" ContentTemplate="{DataTemplate local:ResetPasswordPage}" Route="ResetPasswordPage" />
-    <ShellContent Title="Change Password" ContentTemplate="{DataTemplate local:ChangePasswordPage}"  Route="ChangePasswordPage" />
+    <ShellContent Title="Change Password" ContentTemplate="{DataTemplate local:ChangePasswordPage}" Route="ChangePasswordPage" />
+    <ShellContent Title="Explore" ContentTemplate="{DataTemplate local:ExplorePage}" Route="ExplorePage" />
     <ShellContent Route="CreditsPage" ContentTemplate="{DataTemplate local:CreditsPage}" />
-
-
 
 </Shell>

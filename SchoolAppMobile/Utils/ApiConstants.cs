@@ -8,6 +8,6 @@ namespace SchoolAppMobile.Utils
 {
     public static class ApiConstants
     {
-        public const string BaseUrl = "https://www.escolainfosysapi.somee.com/api/"; 
+        public const string BaseUrl = "https://escolainfosysapi.somee.com/api/"; 
     }
 }

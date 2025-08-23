@@ -24,6 +24,14 @@ namespace SchoolAppMobile.Services
 
         Task<bool> ChangePasswordAsync(ChangePasswordDto dto);
 
+        // ---- públicos (ANÓNIMO)
+        Task<List<CourseDto>> GetPublicCoursesAsync();
+        Task<List<SubjectDto>> GetPublicSubjectsAsync();
+        Task<List<FormGroupDto>> GetPublicFormGroupsAsync();
+
+     
+        Task<List<SubjectDto>> GetPublicSubjectsByCourseAsync(int courseId);
+        Task<List<ContentDto>> GetPublicContentsBySubjectAsync(int subjectId);
 
 
 

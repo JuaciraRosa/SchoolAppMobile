@@ -40,6 +40,7 @@ public partial class HomePage : ContentPage
                 AddButton("Notifications", async () => await Shell.Current.GoToAsync("///NotificationsPage"));
                 AddButton("Profile", async () => await Shell.Current.GoToAsync("///ProfilePage"));
                 AddButton("Enrollment Request", async () => await Shell.Current.GoToAsync("///SendEnrollmentPage"));
+                AddButton("Explore Courses", async () => await Shell.Current.GoToAsync("///ExplorePage"));
                 break;
 
             case "StaffMember":
@@ -47,14 +48,25 @@ public partial class HomePage : ContentPage
                 AddButton("Register Mark", async () => await Shell.Current.GoToAsync("///RegisterMarkPage"));
                 AddButton("Averages", async () => await Shell.Current.GoToAsync("///AveragesPage"));
                 AddButton("Alerts", async () => await Shell.Current.GoToAsync("///AlertsPage"));
+              
+                AddButton("Explore Courses", async () => await Shell.Current.GoToAsync("///ExplorePage"));
                 break;
 
             case "Administrator":
                 AddButton("Enrollment Requests", async () => await Shell.Current.GoToAsync("///EnrollmentRequestsPage"));
                 AddButton("System Settings", async () => await Shell.Current.GoToAsync("///SettingsPage"));
                 AddButton("Alerts", async () => await Shell.Current.GoToAsync("///AlertsPage"));
+          
+                AddButton("Explore Courses", async () => await Shell.Current.GoToAsync("///ExplorePage"));
+                break;
+
+     
+            default:
+                AddButton("Explore Courses", async () => await Shell.Current.GoToAsync("///ExplorePage"));
+                AddButton("Login", async () => await Shell.Current.GoToAsync("///LoginPage"));
                 break;
         }
+
     }
 
     private void AddButton(string text, Func<Task> action)
@@ -71,7 +83,7 @@ public partial class HomePage : ContentPage
 
     private async void OnCreditsClicked(object sender, EventArgs e)
     {
-        await Shell.Current.GoToAsync("CreditsPage");
+        await Shell.Current.GoToAsync("///CreditsPage");
     }
 
     private async void OnLogoutClicked(object sender, EventArgs e)

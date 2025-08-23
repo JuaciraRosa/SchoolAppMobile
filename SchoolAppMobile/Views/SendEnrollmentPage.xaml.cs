@@ -5,46 +5,34 @@ namespace SchoolAppMobile.Views;
 
 public partial class SendEnrollmentPage : ContentPage
 {
-    private readonly IApiService _apiService;
+    private readonly IApiService _api;
 
     public SendEnrollmentPage()
     {
         InitializeComponent();
-        _apiService = ServiceHelper.GetService<IApiService>();
+        _api = ServiceHelper.GetService<IApiService>();
     }
-    private async void OnSubmitClicked(object sender, EventArgs e)
+
+    private async void OnSendClicked(object sender, EventArgs e)
     {
-        var message = MessageEditor.Text?.Trim();
-
-        if (string.IsNullOrWhiteSpace(message))
+        var text = MessageEditor.Text?.Trim();
+        if (string.IsNullOrEmpty(text))
         {
-            var confirm = await DisplayAlert("Empty message", "Do you want to send the request without a message?", "Yes", "No");
-            if (!confirm) return;
+            await DisplayAlert("Validation", "Please enter your request.", "OK");
+            return;
         }
 
-        var success = await _apiService.PostAsync("enrollmentrequests", new CreateEnrollmentRequestDto
+        // Precisa de JWT (endpoint é [Authorize(Roles="Student")])
+        var ok = await _api.PostAsync("enrollmentrequests", new { message = text });
+        if (ok)
         {
-            Message = message
-        });
-
-        if (success)
-        {
-            await DisplayAlert("Success", "Your enrollment request was submitted.", "OK");
-            await Shell.Current.GoToAsync("///HomePage");
-        }
-        else
-        {
-            await DisplayAlert("Error", "Failed to send the request. Try again later.", "OK");
+            await DisplayAlert("Success", "Enrollment request submitted.", "OK");
+            await Shell.Current.GoToAsync("..");
         }
     }
-
-
-
-
 
     private async void OnBackToHomeClicked(object sender, EventArgs e)
     {
         await Shell.Current.GoToAsync("///HomePage");
     }
-
 }

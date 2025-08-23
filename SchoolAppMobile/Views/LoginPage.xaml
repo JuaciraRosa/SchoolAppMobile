@@ -18,11 +18,16 @@
 
             <Button Text="Login" Clicked="OnLoginClicked" />
 
+            <Button Text="Explore Courses (no login)"
+                    Clicked="OnExploreClicked"
+                    BackgroundColor="DarkSlateBlue"
+                    TextColor="White" />
+
             <Label x:Name="ErrorLabel" TextColor="Red" IsVisible="False" />
 
             <Button Text="Forgot Password" Clicked="OnForgotClicked" />
 
-
+         
         </VerticalStackLayout>
     </ScrollView>
 </ContentPage>

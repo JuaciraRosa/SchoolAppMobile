@@ -20,13 +20,24 @@ namespace SchoolAppMobile.Services
         {
             _httpClient = new HttpClient
             {
-                BaseAddress = new Uri("https://www.escolainfosysapi.somee.com/api/") 
+                BaseAddress = new Uri("https://escolainfosysapi.somee.com/api") 
             };
 
             _jsonOptions = new JsonSerializerOptions
             {
                 PropertyNamingPolicy = JsonNamingPolicy.CamelCase
             };
+        }
+
+        // Se quiseres setar token manualmente após login
+        public void SetAuthToken(string? token)
+        {
+            _httpClient.DefaultRequestHeaders.Authorization = null;
+            if (!string.IsNullOrEmpty(token))
+            {
+                _httpClient.DefaultRequestHeaders.Authorization =
+                    new AuthenticationHeaderValue("Bearer", token);
+            }
         }
 
         private async Task AddJwtHeaderAsync()
@@ -265,6 +276,21 @@ namespace SchoolAppMobile.Services
             return JsonSerializer.Deserialize<List<FormGroupDto>>(json, _jsonOptions) ?? new();
         }
 
+        public async Task<List<SubjectDto>> GetPublicSubjectsByCourseAsync(int courseId)
+        {
+            var response = await _httpClient.GetAsync($"public/subjects?courseId={courseId}");
+            if (!response.IsSuccessStatusCode) return new();
+            var json = await response.Content.ReadAsStringAsync();
+            return JsonSerializer.Deserialize<List<SubjectDto>>(json, _jsonOptions) ?? new();
+        }
+
+        public async Task<List<ContentDto>> GetPublicContentsBySubjectAsync(int subjectId)
+        {
+            var response = await _httpClient.GetAsync($"public/contents?subjectId={subjectId}");
+            if (!response.IsSuccessStatusCode) return new();
+            var json = await response.Content.ReadAsStringAsync();
+            return JsonSerializer.Deserialize<List<ContentDto>>(json, _jsonOptions) ?? new();
+        }
 
 
 

@@ -7,12 +7,15 @@ using System.Threading.Tasks;
 
 namespace SchoolAppMobile.Models
 {
-    public  class CourseDto
+    public class ContentDto
     {
         [JsonPropertyName("id")]
         public int Id { get; set; }
 
-        [JsonPropertyName("name")]
-        public string Name { get; set; }
+        [JsonPropertyName("title")]
+        public string Title { get; set; }
+
+        [JsonPropertyName("description")]
+        public string Description { get; set; }
     }
 }

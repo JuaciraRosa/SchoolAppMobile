@@ -46,4 +46,10 @@ public partial class LoginPage : ContentPage
         await Shell.Current.GoToAsync("///ForgotPasswordPage");
     }
 
+    private async void OnExploreClicked(object sender, EventArgs e)
+    {
+        await Shell.Current.GoToAsync("///ExplorePage");
+    }
+
+
 }
