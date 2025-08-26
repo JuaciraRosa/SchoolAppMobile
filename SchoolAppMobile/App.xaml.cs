@@ -1,32 +1,26 @@
-﻿using SchoolAppMobile.Services;
-using SchoolAppMobile.Views;
-using System.Web;
+﻿using EscolaInfoSys.Mobile.Services;
+using SchoolAppMobile.Services;
+using static System.Net.Mime.MediaTypeNames;
 
-namespace SchoolAppMobile
+public partial class App : Application
 {
-    public partial class App : Application
+    private readonly ApiService _api;
+    private readonly IServiceProvider _sp;
+
+    public App(ApiService api, IServiceProvider sp)
     {
-        public App()
-        {
-            InitializeComponent();
-            MainPage = new AppShell();
-            MainThread.BeginInvokeOnMainThread(RouteOnLaunch);
-        }
+        InitializeComponent();
+        _api = api;
+        _sp = sp;
 
-        private async void RouteOnLaunch()
-        {
-            var token = Preferences.Get("jwt_token", null);
-            var api = ServiceHelper.GetService<IApiService>();
-
-            if (string.IsNullOrEmpty(token))
-                await Shell.Current.GoToAsync("//LoginPage");
-            else
-            {
-                api.SetAuthToken(token);
-                await Shell.Current.GoToAsync("//HomePage");
-            }
-        }
+        // começa no login
+        MainPage = new NavigationPage(ActivatorUtilities.CreateInstance<LoginPage>(_sp));
     }
 
-
+    public void GoToShell()
+    {
+        // cria o Shell via DI
+        var shell = ActivatorUtilities.CreateInstance<AppShell>(_sp);
+        MainPage = shell;
+    }
 }

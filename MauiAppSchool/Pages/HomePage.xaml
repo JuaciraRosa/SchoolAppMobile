@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="MauiAppSchool.Pages.HomePage"
+             Title="HomePage">
+    <VerticalStackLayout Padding="16" Spacing="10">
+        <Label x:Name="Hello" FontSize="18"/>
+        <HorizontalStackLayout Spacing="8">
+            <Button Text="Courses/Subjects" Clicked="OpenPublic"/>
+            <Button Text="Refresh" Clicked="OnRefresh"/>
+        </HorizontalStackLayout>
+        <CollectionView x:Name="FeedList">
+            <CollectionView.ItemTemplate>
+                <DataTemplate>
+                    <Frame Padding="10" Margin="0,6" HasShadow="True">
+                        <VerticalStackLayout>
+                            <Label Text="{Binding Type}" FontAttributes="Bold"/>
+                            <Label Text="{Binding Subject}" />
+                            <Label Text="{Binding Date}" />
+                            <Label Text="{Binding Value}" />
+                        </VerticalStackLayout>
+                    </Frame>
+                </DataTemplate>
+            </CollectionView.ItemTemplate>
+        </CollectionView>
+    </VerticalStackLayout>
+</ContentPage>

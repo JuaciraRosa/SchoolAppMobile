@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="MauiAppSchool.Pages.AbsencesPage"
+             Title="AbsencesPage">
+
+    <ContentPage.ToolbarItems>
+        <ToolbarItem Text="Home" Clicked="GoHome"/>
+    </ContentPage.ToolbarItems>
+
+    <ScrollView>
+        <VerticalStackLayout Padding="16" Spacing="10">
+            <Label Text="By subject" FontAttributes="Bold" FontSize="18"/>
+            <CollectionView x:Name="SummaryList">
+                <CollectionView.ItemTemplate>
+                    <DataTemplate>
+                        <Frame Padding="8" Margin="0,6">
+                            <VerticalStackLayout>
+                                <Label Text="{Binding Subject}" FontAttributes="Bold"/>
+                                <Label Text="{Binding Count, StringFormat='Absences: {0}'}"/>
+                                <Label Text="{Binding Percentage, StringFormat='Percent: {0}%'}"/>
+                                <Label Text="{Binding MaxAllowed, StringFormat='Max: {0}'}"/>
+                                <Label Text="{Binding Exceeded, StringFormat='Exceeded: {0}'}"/>
+                            </VerticalStackLayout>
+                        </Frame>
+                    </DataTemplate>
+                </CollectionView.ItemTemplate>
+            </CollectionView>
+
+            <Label Text="Entries" FontAttributes="Bold" FontSize="18" Margin="0,10,0,0"/>
+            <CollectionView x:Name="ItemsList">
+                <CollectionView.ItemTemplate>
+                    <DataTemplate>
+                        <Frame Padding="8" Margin="0,6">
+                            <VerticalStackLayout>
+                                <Label Text="{Binding Subject}" FontAttributes="Bold"/>
+                                <Label Text="{Binding Date}"/>
+                                <Label Text="{Binding Justified, StringFormat='Justified: {0}'}"/>
+                            </VerticalStackLayout>
+                        </Frame>
+                    </DataTemplate>
+                </CollectionView.ItemTemplate>
+            </CollectionView>
+        </VerticalStackLayout>
+    </ScrollView>
+</ContentPage>

@@ -1,45 +1,32 @@
-﻿using Microsoft.Extensions.Logging;
-using SchoolAppMobile.Services;
-using SchoolAppMobile.Views;
+﻿using EscolaInfoSys.Mobile.Services;
 
-namespace SchoolAppMobile
+public static class MauiProgram
 {
-    public static class MauiProgram
+    public static MauiApp CreateMauiApp()
     {
-        public static MauiApp CreateMauiApp()
+        var builder = MauiApp.CreateBuilder();
+        builder
+            .UseMauiApp<App>();
+
+        const string ApiBase = "https://escolainfosysapi.somee.com"; // troque p/ http:// se o emulador não aceitar TLS
+        builder.Services.AddSingleton(sp =>
         {
-            var builder = MauiApp.CreateBuilder();
-            builder
-                .UseMauiApp<App>()
-                .ConfigureFonts(fonts =>
-                {
-                    fonts.AddFont("OpenSans-Regular.ttf", "OpenSansRegular");
-                    fonts.AddFont("OpenSans-Semibold.ttf", "OpenSansSemibold");
-                });
+            var svc = new ApiService(ApiBase);
+            _ = svc.LoadTokenAsync();
+            return svc;
+        });
 
-#if DEBUG
-            builder.Logging.AddDebug();
-#endif
+        // registra páginas para DI
+        builder.Services.AddTransient<LoginPage>();
+        builder.Services.AddTransient<AppShell>();
+        builder.Services.AddTransient<HomePage>();
+        builder.Services.AddTransient<MarksPage>();
+        builder.Services.AddTransient<AbsencesPage>();
+        builder.Services.AddTransient<StatusPage>();
+        builder.Services.AddTransient<ProfilePage>();
+        builder.Services.AddTransient<PublicPage>();
 
-            // Serviços
-            builder.Services.AddSingleton<IApiService, ApiService>();
-
-   
-            builder.Services.AddSingleton<SendEnrollmentPage>();
-            builder.Services.AddSingleton<ExplorePage>();
-            builder.Services.AddSingleton<PublicSubjectsPage>();
-            builder.Services.AddSingleton<SubjectContentsPage>();
-
-       
-            builder.Services.AddSingleton<MarksPage>();
-            builder.Services.AddSingleton<AbsencesPage>();
-            builder.Services.AddSingleton<NotificationsPage>();
-            builder.Services.AddSingleton<ProfilePage>();
-            builder.Services.AddSingleton<LoginPage>();
-            builder.Services.AddSingleton<HomePage>();
-
-            return builder.Build();
-        }
+        return builder.Build();
     }
-
 }
+

@@ -6,13 +6,13 @@
     xmlns:local="clr-namespace:SchoolAppMobile.Views"
     Shell.FlyoutBehavior="Disabled"
     Title="SchoolAppMobile">
-    <!-- Auth -->
+    <!-- Auth --><!--
     <ShellContent Route="LoginPage"           ContentTemplate="{DataTemplate views:LoginPage}" />
     <ShellContent Route="ForgotPasswordPage"  ContentTemplate="{DataTemplate views:ForgotPasswordPage}" />
     <ShellContent Route="ResetPasswordPage"   ContentTemplate="{DataTemplate views:ResetPasswordPage}" />
     <ShellContent Route="ChangePasswordPage"  ContentTemplate="{DataTemplate views:ChangePasswordPage}" />
 
-    <!-- Home + aluno -->
+    --><!-- Home + aluno --><!--
     <ShellContent Route="HomePage"            ContentTemplate="{DataTemplate views:HomePage}" />
     <ShellContent Route="MarksPage"           ContentTemplate="{DataTemplate views:MarksPage}" />
     <ShellContent Route="AbsencesPage"        ContentTemplate="{DataTemplate views:AbsencesPage}" />
@@ -20,14 +20,14 @@
     <ShellContent Route="ProfilePage"         ContentTemplate="{DataTemplate views:ProfilePage}" />
     <ShellContent Route="EditProfilePage"     ContentTemplate="{DataTemplate views:EditProfilePage}" />
 
-    <!-- Explorar (anônimo) -->
+    --><!-- Explorar (anônimo) --><!--
     <ShellContent Route="ExplorePage"         ContentTemplate="{DataTemplate views:ExplorePage}" />
     <ShellContent Route="PublicSubjectsPage"  ContentTemplate="{DataTemplate views:PublicSubjectsPage}" />
     <ShellContent Route="SubjectContentsPage" ContentTemplate="{DataTemplate views:SubjectContentsPage}" />
 
-    <!-- Pedido de inscrição -->
+    --><!-- Pedido de inscrição --><!--
     <ShellContent Route="SendEnrollmentPage"  ContentTemplate="{DataTemplate views:SendEnrollmentPage}" />
 
-    <!-- Créditos -->
-    <ShellContent Route="CreditsPage"         ContentTemplate="{DataTemplate views:CreditsPage}" />
+    --><!-- Créditos --><!--
+    <ShellContent Route="CreditsPage"         ContentTemplate="{DataTemplate views:CreditsPage}" />-->
 </Shell>

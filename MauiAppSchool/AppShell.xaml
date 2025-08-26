@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<Shell
+    x:Class="MauiAppSchool.AppShell"
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    xmlns:pages="clr-namespace:MauiAppSchool.Pages"
+    Shell.FlyoutBehavior="Disabled"
+    Title="MauiAppSchool">
+
+    <TabBar>
+        <ShellContent Title="Home" Route="home"
+                  ContentTemplate="{DataTemplate pages:HomePage}" />
+        <ShellContent Title="Marks"
+                  ContentTemplate="{DataTemplate pages:MarksPage}" />
+        <ShellContent Title="Absences"
+                  ContentTemplate="{DataTemplate pages:AbsencesPage}" />
+        <ShellContent Title="Status"
+                  ContentTemplate="{DataTemplate pages:StatusPage}" />
+        <ShellContent Title="Profile"
+                  ContentTemplate="{DataTemplate pages:ProfilePage}" />
+    </TabBar>
+
+</Shell>
