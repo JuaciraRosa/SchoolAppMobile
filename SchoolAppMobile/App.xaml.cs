@@ -1,4 +1,5 @@
-﻿using SchoolAppMobile.Views;
+﻿using SchoolAppMobile.Services;
+using SchoolAppMobile.Views;
 using System.Web;
 
 namespace SchoolAppMobile
@@ -8,43 +9,24 @@ namespace SchoolAppMobile
         public App()
         {
             InitializeComponent();
-
             MainPage = new AppShell();
-
-
-            if (string.IsNullOrEmpty(Preferences.Get("AuthToken", "")))
-                Shell.Current.GoToAsync("//login");
-            else
-                Shell.Current.GoToAsync("//home");
+            MainThread.BeginInvokeOnMainThread(RouteOnLaunch);
         }
 
-
-        protected override void OnAppLinkRequestReceived(Uri uri)
-        {
-            // Ex.: escola://reset?email=a@b.com&token=XYZ
-            if (uri.Scheme == "escola" && uri.Host == "reset")
-            {
-                var q = HttpUtility.ParseQueryString(uri.Query);
-                var email = q["email"] ?? "";
-                var token = q["token"] ?? "";
-
-                MainThread.BeginInvokeOnMainThread(async () =>
-                {
-                    var route = $"{nameof(SchoolAppMobile.Views.ResetPasswordPage)}" +
-                                $"?email={Uri.EscapeDataString(email)}&token={Uri.EscapeDataString(token)}";
-                    await Shell.Current.GoToAsync(route);
-                });
-            }
-
-            base.OnAppLinkRequestReceived(uri);
-        }
-
-        protected override void OnStart()
+        private async void RouteOnLaunch()
         {
             var token = Preferences.Get("jwt_token", null);
-            if (!string.IsNullOrEmpty(token))
-                MainThread.BeginInvokeOnMainThread(async () => await Shell.Current.GoToAsync("//HomePage"));
-        }
+            var api = ServiceHelper.GetService<IApiService>();
 
+            if (string.IsNullOrEmpty(token))
+                await Shell.Current.GoToAsync("//LoginPage");
+            else
+            {
+                api.SetAuthToken(token);
+                await Shell.Current.GoToAsync("//HomePage");
+            }
+        }
     }
+
+
 }
