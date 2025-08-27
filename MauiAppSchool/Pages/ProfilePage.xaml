@@ -8,12 +8,54 @@
         <ToolbarItem Text="Home" Clicked="GoHome"/>
     </ContentPage.ToolbarItems>
 
-    <VerticalStackLayout Padding="16" Spacing="8">
-        <Image x:Name="Photo" HeightRequest="120" WidthRequest="120"/>
-        <Entry x:Name="FullName" Placeholder="Full name"/>
-        <Entry x:Name="PhotoUrl" Placeholder="Photo URL"/>
-        <Button Text="Save" Clicked="OnSave"/>
-        <Label x:Name="Email" />
-        <Label x:Name="Role" />
-    </VerticalStackLayout>
+    <ScrollView>
+        <VerticalStackLayout Padding="20" Spacing="16">
+
+            <!-- Avatar redondo com sombra e gesto de toque -->
+            <Grid HorizontalOptions="Center">
+                <Border StrokeShape="RoundRectangle 120"
+                HeightRequest="120" WidthRequest="120"
+                BackgroundColor="{DynamicResource SecondaryColor}"
+                Shadow="5,5,10,0.25">
+                    <!-- mantém o MESMO x:Name="Photo" -->
+                    <Image x:Name="Photo" Aspect="AspectFill">
+                        <Image.Clip>
+                            <EllipseGeometry Center="60,60" RadiusX="60" RadiusY="60"/>
+                        </Image.Clip>
+                    </Image>
+                </Border>
+
+                <!-- ícone sobreposto (opcional) só pra indicar toque -->
+                <Border StrokeShape="RoundRectangle 16"
+                BackgroundColor="#66000000"
+                HorizontalOptions="End" VerticalOptions="End"
+                TranslationX="6" TranslationY="6"
+                Padding="4">
+                    <Label Text="📷" FontSize="12" TextColor="White"/>
+                </Border>
+
+                <!-- toque para trocar a foto -->
+                <Grid.GestureRecognizers>
+                    <TapGestureRecognizer NumberOfTapsRequired="1" Tapped="OnChangePhoto"/>
+                </Grid.GestureRecognizers>
+            </Grid>
+
+            <Label Text="Tap the photo to change"
+             FontSize="12" Opacity="0.6" HorizontalTextAlignment="Center"/>
+
+            <!-- mantém os mesmos nomes -->
+            <Entry x:Name="FullName" Placeholder="Full name"/>
+            <Entry x:Name="PhotoUrl" Placeholder="Photo URL"/>
+
+            <Button Text="Save" Clicked="OnSave" />
+
+            <Frame Padding="12" HasShadow="True">
+                <VerticalStackLayout Spacing="4">
+                    <Label x:Name="Email"/>
+                    <Label x:Name="Role"/>
+                </VerticalStackLayout>
+            </Frame>
+
+        </VerticalStackLayout>
+    </ScrollView>
 </ContentPage>
