@@ -11,39 +11,31 @@
     <ScrollView>
         <VerticalStackLayout Padding="20" Spacing="16">
 
-            <!-- Avatar redondo com sombra e gesto de toque -->
-            <Grid HorizontalOptions="Center">
-                <Border StrokeShape="RoundRectangle 120"
-                HeightRequest="120" WidthRequest="120"
-                BackgroundColor="{DynamicResource SecondaryColor}"
-                Shadow="5,5,10,0.25">
-                    <!-- mantém o MESMO x:Name="Photo" -->
-                    <Image x:Name="Photo" Aspect="AspectFill">
-                        <Image.Clip>
-                            <EllipseGeometry Center="60,60" RadiusX="60" RadiusY="60"/>
-                        </Image.Clip>
-                    </Image>
-                </Border>
+            <!-- avatar redondo com gesto de toque (sem Shadow inválido) -->
+            <Grid HorizontalOptions="Center" WidthRequest="120" HeightRequest="120">
+                <!-- mantém o MESMO nome -->
+                <Image x:Name="Photo" Aspect="AspectFill">
+                    <Image.Clip>
+                        <EllipseGeometry Center="60,60" RadiusX="60" RadiusY="60"/>
+                    </Image.Clip>
+                    <Image.GestureRecognizers>
+                        <TapGestureRecognizer NumberOfTapsRequired="1" Tapped="OnChangePhoto"/>
+                    </Image.GestureRecognizers>
+                </Image>
 
-                <!-- ícone sobreposto (opcional) só pra indicar toque -->
+                <!-- badge de câmera (sibling, não conteúdo do Border) -->
                 <Border StrokeShape="RoundRectangle 16"
                 BackgroundColor="#66000000"
                 HorizontalOptions="End" VerticalOptions="End"
-                TranslationX="6" TranslationY="6"
-                Padding="4">
+                Padding="4" Margin="4">
                     <Label Text="📷" FontSize="12" TextColor="White"/>
                 </Border>
-
-                <!-- toque para trocar a foto -->
-                <Grid.GestureRecognizers>
-                    <TapGestureRecognizer NumberOfTapsRequired="1" Tapped="OnChangePhoto"/>
-                </Grid.GestureRecognizers>
             </Grid>
 
             <Label Text="Tap the photo to change"
              FontSize="12" Opacity="0.6" HorizontalTextAlignment="Center"/>
 
-            <!-- mantém os mesmos nomes -->
+            <!-- mantém MESMOS nomes -->
             <Entry x:Name="FullName" Placeholder="Full name"/>
             <Entry x:Name="PhotoUrl" Placeholder="Photo URL"/>
 

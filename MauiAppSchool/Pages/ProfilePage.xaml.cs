@@ -67,8 +67,14 @@ public partial class ProfilePage : ContentPage
                 });
                 if (file is null) return;
 
+                // DEPOIS (bufferizado)
                 using var stream = await file.OpenReadAsync();
-                Photo.Source = ImageSource.FromStream(() => stream);
+                using var ms = new MemoryStream();
+                await stream.CopyToAsync(ms);
+                var bytes = ms.ToArray();
+                Photo.Source = ImageSource.FromStream(() => new MemoryStream(bytes));
+
+
 
                 await DisplayAlert("Note",
                     "This only previews the image. To persist on the server, paste a URL from the site.",
