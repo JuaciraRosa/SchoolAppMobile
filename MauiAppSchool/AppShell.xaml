@@ -18,6 +18,9 @@
                   ContentTemplate="{DataTemplate pages:StatusPage}" />
         <ShellContent Title="Profile"
                   ContentTemplate="{DataTemplate pages:ProfilePage}" />
+
+        <ShellContent Title="Explore" Route="Public"
+                      ContentTemplate="{DataTemplate pages:PublicPage}" />
     </TabBar>
 
 </Shell>

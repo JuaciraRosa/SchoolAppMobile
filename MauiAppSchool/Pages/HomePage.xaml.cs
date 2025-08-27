@@ -22,6 +22,8 @@ public partial class HomePage : ContentPage
         Hello.Text = $"Hello, {me.FullName}";
         var feed = await _api.GetFeedAsync(DateTime.UtcNow.AddDays(-30));
         FeedList.ItemsSource = feed.items;
+
+
     }
 
     private async void OnRefresh(object s, EventArgs e) => await Load();

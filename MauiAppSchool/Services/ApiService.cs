@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Net;
 using System.Net.Http.Headers;
 using System.Text;
 using System.Text.Json;
@@ -73,16 +74,16 @@ namespace MauiAppSchool.Services
             var url = resp.RequestMessage?.RequestUri?.ToString() ?? "<unknown>";
             var txt = await resp.Content.ReadAsStringAsync();
 
+            if (resp.StatusCode == HttpStatusCode.Unauthorized || resp.StatusCode == HttpStatusCode.Forbidden)
+                throw new UnauthorizedAccessException($"{(int)resp.StatusCode} at {url}");
+
             if (!resp.IsSuccessStatusCode)
                 throw new HttpRequestException($"{(int)resp.StatusCode} {resp.ReasonPhrase} at {url}\n{txt}");
 
-            var data = JsonSerializer.Deserialize<T>(txt, _json);
-            if (data is null)
-                throw new InvalidOperationException($"Empty response at {url}");
-
+            var data = JsonSerializer.Deserialize<T>(txt, _json)
+                       ?? throw new InvalidOperationException($"Empty response at {url}");
             return data;
         }
-
         // Auth
         public async Task<LoginResponse> LoginAsync(string email, string password)
         {
@@ -189,5 +190,30 @@ namespace MauiAppSchool.Services
             => await Read<List<SubjectStatusDto>>(await _http.GetAsync($"{BaseUrl}/api/status/per-subject"));
         public async Task<SystemInfoDto> GetSystemInfoAsync()
             => await Read<SystemInfoDto>(await _http.GetAsync($"{BaseUrl}/api/system/info"));
+
+
+    
+        public record ForgotPasswordRequest(string Email);
+        public record ResetPasswordRequest(string Email, string Token, string NewPassword);
+
+   
+        public async Task ForgotPasswordAsync(string email)
+        {
+            var resp = await _http.PostAsync($"{BaseUrl}/api/auth/forgot-password",
+                                             Body(new ForgotPasswordRequest(email)));
+            // backend pode devolver 200 mesmo que email não exista (por segurança)
+            _ = await Read<object>(resp);
+        }
+
+        public async Task ResetPasswordAsync(string email, string token, string newPassword)
+        {
+            var resp = await _http.PostAsync($"{BaseUrl}/api/auth/reset-password",
+                                             Body(new ResetPasswordRequest(email, token, newPassword)));
+            _ = await Read<object>(resp);
+        }
+
+        // opcional: login anónimo = limpa token
+        public Task UseAnonymousAsync() => SaveTokenAsync(null);
+
     }
 }

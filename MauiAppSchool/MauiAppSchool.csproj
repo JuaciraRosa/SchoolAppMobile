@@ -63,6 +63,9 @@
 	  <MauiXaml Update="Pages\AbsencesPage.xaml">
 	    <Generator>MSBuild:Compile</Generator>
 	  </MauiXaml>
+	  <MauiXaml Update="Pages\GuestPage.xaml">
+	    <Generator>MSBuild:Compile</Generator>
+	  </MauiXaml>
 	  <MauiXaml Update="Pages\HomePage.xaml">
 	    <Generator>MSBuild:Compile</Generator>
 	  </MauiXaml>
