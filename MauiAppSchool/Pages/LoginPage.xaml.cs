@@ -34,12 +34,12 @@ public partial class LoginPage : ContentPage
 
             if (!string.IsNullOrWhiteSpace(link))
             {
-                await Launcher.Default.OpenAsync(new Uri(link));
+                await Browser.Default.OpenAsync(new Uri(link), BrowserLaunchMode.External);
             }
             else
             {
                 await DisplayAlert("Sent",
-                    "If the email exists, we sent you a reset link. Please check your inbox.",
+                    "If the email exists, a reset link was sent. Please check your inbox.",
                     "OK");
             }
         }
