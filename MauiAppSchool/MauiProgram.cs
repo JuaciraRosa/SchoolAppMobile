@@ -12,9 +12,9 @@ namespace MauiAppSchool
             builder.UseMauiApp<App>();
 
             const string ApiBase = "https://escolainfosysapi.somee.com";
+            const string WebBase = "https://escolainfosys.somee.com"; // fotos/estáticos (MVC)
 
-            const string WebBase = "https://escolainfosys.somee.com"; // ← fotos/estáticos
-
+            // somente ESTA inscrição
             builder.Services.AddSingleton(sp =>
             {
                 var svc = new ApiService(ApiBase, webBase: WebBase);
@@ -22,12 +22,7 @@ namespace MauiAppSchool
                 return svc;
             });
 
-            builder.Services.AddSingleton(sp =>
-            {
-                var svc = new ApiService(ApiBase);
-                _ = svc.LoadTokenAsync();
-                return svc;
-            });
+         
 
             // DI das páginas
             builder.Services.AddTransient<Pages.LoginPage>();
@@ -39,11 +34,10 @@ namespace MauiAppSchool
             builder.Services.AddTransient<Pages.ProfilePage>();
             builder.Services.AddTransient<Pages.PublicPage>();
 
-            // constrói o app primeiro, depois inicializa o ServiceHelper
+            // ✅ constrói uma vez e retorna o mesmo 'app'
             var app = builder.Build();
             ServiceHelper.Initialize(app.Services);
-
-            return builder.Build();
+            return app;
         }
     }
 }

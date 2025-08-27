@@ -110,22 +110,57 @@ namespace MauiAppSchool.Services
             => await Read<object>(await _http.PutAsync($"{BaseUrl}/api/students/profile", Body(new UpdateProfileRequest(fullName, profilePhoto))));
 
         // Resolve URL absoluta da foto vinda do site MVC
-        public Uri? ResolvePhotoUri(string? raw)
+        // ApiService.cs
+        public async Task<Uri?> ResolvePhotoUriAsync(string? raw)
         {
             if (string.IsNullOrWhiteSpace(raw)) return null;
-
             raw = raw.Trim().Replace("\\", "/");
 
-            // já é absoluta?
             if (Uri.TryCreate(raw, UriKind.Absolute, out var abs)) return abs;
 
-            // trata "~/..." → "/..."
-            if (raw.StartsWith("~/")) raw = raw[2..];
-            if (!raw.StartsWith("/")) raw = "/" + raw;
+            // já veio com caminho? junta com o host do site
+            if (raw.Contains('/'))
+            {
+                if (raw.StartsWith("~/")) raw = raw[2..];
+                if (!raw.StartsWith("/")) raw = "/" + raw;
+                return new Uri($"{WebBase}{raw}");
+            }
 
-            // combina com o host do site web (não a API)
-            return new Uri($"{WebBase}{raw}");
+            // só o ficheiro: tenta /uploads/ e depois raiz
+            var candidate = $"{WebBase}/uploads/{raw}";
+            if (await UrlExistsAsync(candidate)) return new Uri(candidate);
+
+            var fallback = $"{WebBase}/{raw}";
+            if (await UrlExistsAsync(fallback)) return new Uri(fallback);
+
+            return null;
         }
+
+
+        // testa sem baixar o corpo inteiro
+        private async Task<bool> UrlExistsAsync(string url)
+        {
+            try
+            {
+                // primeiro HEAD (rápido). Se o host bloquear, tenta GET só cabeçalhos.
+                using var head = new HttpRequestMessage(HttpMethod.Head, url);
+                using var r1 = await _http.SendAsync(head, HttpCompletionOption.ResponseHeadersRead);
+                if ((int)r1.StatusCode >= 200 && (int)r1.StatusCode < 300) return true;
+
+                using var get = new HttpRequestMessage(HttpMethod.Get, url);
+                using var r2 = await _http.SendAsync(get, HttpCompletionOption.ResponseHeadersRead);
+                if (!r2.IsSuccessStatusCode) return false;
+
+                var ct = r2.Content.Headers.ContentType?.MediaType;
+                return ct != null && ct.StartsWith("image/", StringComparison.OrdinalIgnoreCase);
+            }
+            catch
+            {
+                return false;
+            }
+        }
+
+
 
         // Notas / Faltas
         public async Task<IReadOnlyList<MarkDto>> GetMarksAsync(int? subjectId = null)

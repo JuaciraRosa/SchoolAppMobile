@@ -21,11 +21,12 @@ public partial class ProfilePage : ContentPage
         FullName.Text = me.FullName;
         PhotoUrl.Text = me.ProfilePhoto;
         Email.Text = $"Email: {me.Email}";
-        Role.Text  = $"Role: {me.Role}";
+        Role.Text = $"Role: {me.Role}";
 
         try
         {
-            var uri = _api.ResolvePhotoUri(me.ProfilePhoto);
+            // AQUI usa o valor vindo do perfil, não a variável 'url'
+            var uri = await _api.ResolvePhotoUriAsync(me.ProfilePhoto);
             Photo.Source = uri is null ? null : ImageSource.FromUri(uri);
         }
         catch { Photo.Source = null; }
@@ -39,10 +40,12 @@ public partial class ProfilePage : ContentPage
     }
 
     // Toque na foto → escolher URL ou pré-visualizar do dispositivo
-     private async void OnChangePhoto(object s, EventArgs e)
+    // Toque na foto → escolher URL ou pré-visualização do dispositivo
+    private async void OnChangePhoto(object s, EventArgs e)
     {
         var choice = await DisplayActionSheet("Change photo", "Cancel", null,
                                               "Paste URL (site)", "Pick from device (preview)");
+
         if (choice == "Paste URL (site)")
         {
             var url = await DisplayPromptAsync("Photo URL", "Paste an absolute or site-relative URL");
@@ -51,10 +54,11 @@ public partial class ProfilePage : ContentPage
             PhotoUrl.Text = url;
             try
             {
-                var uri = _api.ResolvePhotoUri(url);
+                var uri = await _api.ResolvePhotoUriAsync(url);
                 Photo.Source = uri is null ? null : ImageSource.FromUri(uri);
             }
             catch { /* ignore */ }
+
         }
         else if (choice == "Pick from device (preview)")
         {
@@ -67,14 +71,12 @@ public partial class ProfilePage : ContentPage
                 });
                 if (file is null) return;
 
-                // DEPOIS (bufferizado)
+                // bufferiza o stream para não ficar usando um stream já fechado
                 using var stream = await file.OpenReadAsync();
                 using var ms = new MemoryStream();
                 await stream.CopyToAsync(ms);
                 var bytes = ms.ToArray();
                 Photo.Source = ImageSource.FromStream(() => new MemoryStream(bytes));
-
-
 
                 await DisplayAlert("Note",
                     "This only previews the image. To persist on the server, paste a URL from the site.",
@@ -83,6 +85,7 @@ public partial class ProfilePage : ContentPage
             catch { /* canceled */ }
         }
     }
+
 
 
     private async void GoHome(object sender, EventArgs e)
