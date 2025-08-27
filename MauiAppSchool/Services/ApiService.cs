@@ -68,22 +68,30 @@ namespace MauiAppSchool.Services
         // Helpers
         static StringContent Body<T>(T obj) =>
             new(JsonSerializer.Serialize(obj), Encoding.UTF8, "application/json");
-
+        // << SUBSTITUI O TEU Read<T> >>
         async Task<T> Read<T>(HttpResponseMessage resp)
         {
             var url = resp.RequestMessage?.RequestUri?.ToString() ?? "<unknown>";
             var txt = await resp.Content.ReadAsStringAsync();
 
-            if (resp.StatusCode == HttpStatusCode.Unauthorized || resp.StatusCode == HttpStatusCode.Forbidden)
+            if (resp.StatusCode is HttpStatusCode.Unauthorized or HttpStatusCode.Forbidden)
                 throw new UnauthorizedAccessException($"{(int)resp.StatusCode} at {url}");
 
             if (!resp.IsSuccessStatusCode)
                 throw new HttpRequestException($"{(int)resp.StatusCode} {resp.ReasonPhrase} at {url}\n{txt}");
 
-            var data = JsonSerializer.Deserialize<T>(txt, _json)
-                       ?? throw new InvalidOperationException($"Empty response at {url}");
+            // Suporte a 204/200 sem corpo: se T==object ou NoContent, não tentar JSON
+            if (resp.StatusCode == HttpStatusCode.NoContent || string.IsNullOrWhiteSpace(txt))
+            {
+                if (typeof(T) == typeof(object)) return default!; // null e pronto
+                throw new InvalidOperationException($"Empty response at {url}");
+            }
+
+            var data = JsonSerializer.Deserialize<T>(txt, _json);
+            if (data is null) throw new InvalidOperationException($"Empty response at {url}");
             return data;
         }
+
         // Auth
         public async Task<LoginResponse> LoginAsync(string email, string password)
         {
@@ -107,8 +115,13 @@ namespace MauiAppSchool.Services
         // Perfil
         public async Task<ProfileVm> GetProfileAsync()
             => await Read<ProfileVm>(await _http.GetAsync($"{BaseUrl}/api/students/profile"));
+        // Perfil: PUT pode retornar 204
         public async Task UpdateProfileAsync(string? fullName = null, string? profilePhoto = null)
-            => await Read<object>(await _http.PutAsync($"{BaseUrl}/api/students/profile", Body(new UpdateProfileRequest(fullName, profilePhoto))));
+        {
+            var resp = await _http.PutAsync($"{BaseUrl}/api/students/profile",
+                                            Body(new UpdateProfileRequest(fullName, profilePhoto)));
+            await EnsureSuccess(resp);
+        }
 
         // Resolve URL absoluta da foto vinda do site MVC
         // ApiService.cs
@@ -196,24 +209,80 @@ namespace MauiAppSchool.Services
         public record ForgotPasswordRequest(string Email);
         public record ResetPasswordRequest(string Email, string Token, string NewPassword);
 
-   
+
+        // AUTH flows que não retornam JSON -> usar EnsureSuccess
         public async Task ForgotPasswordAsync(string email)
         {
             var resp = await _http.PostAsync($"{BaseUrl}/api/auth/forgot-password",
                                              Body(new ForgotPasswordRequest(email)));
-            // backend pode devolver 200 mesmo que email não exista (por segurança)
-            _ = await Read<object>(resp);
+            await EnsureSuccess(resp);
         }
 
         public async Task ResetPasswordAsync(string email, string token, string newPassword)
         {
             var resp = await _http.PostAsync($"{BaseUrl}/api/auth/reset-password",
                                              Body(new ResetPasswordRequest(email, token, newPassword)));
-            _ = await Read<object>(resp);
+            await EnsureSuccess(resp);
         }
 
         // opcional: login anónimo = limpa token
         public Task UseAnonymousAsync() => SaveTokenAsync(null);
+
+
+        // helper para respostas sem corpo
+        async Task EnsureSuccess(HttpResponseMessage resp)
+        {
+            var url = resp.RequestMessage?.RequestUri?.ToString() ?? "<unknown>";
+            var txt = await resp.Content.ReadAsStringAsync();
+
+            if (resp.StatusCode is HttpStatusCode.Unauthorized or HttpStatusCode.Forbidden)
+                throw new UnauthorizedAccessException($"{(int)resp.StatusCode} at {url}");
+
+            if (!resp.IsSuccessStatusCode)
+                throw new HttpRequestException($"{(int)resp.StatusCode} {resp.ReasonPhrase} at {url}\n{txt}");
+        }
+
+        // DTO para resposta opcional do servidor (link e/ou token)
+        public record ForgotPasswordResponse(string? link, string? token);
+
+        // Tenta obter o link de reset diretamente da API; se vier só token, monta o link do site MVC.
+        // Se não vier corpo nenhum, retorna null (usuário seguirá pelo e-mail).
+        public async Task<string?> ForgotPasswordGetLinkAsync(string email)
+        {
+            var resp = await _http.PostAsync($"{BaseUrl}/api/auth/forgot-password",
+                                             Body(new ForgotPasswordRequest(email)));
+            // Se falhar, lança erro formatado (401/403/etc.)
+            await EnsureSuccess(resp);
+
+            var txt = await resp.Content.ReadAsStringAsync();
+            if (string.IsNullOrWhiteSpace(txt))
+                return null; // servidor só enviou e-mail, sem JSON
+
+            ForgotPasswordResponse? data = null;
+            try
+            {
+                data = JsonSerializer.Deserialize<ForgotPasswordResponse>(txt, _json);
+            }
+            catch
+            {
+                // se vier algum JSON estranho, ignora e cai no null
+            }
+
+            if (!string.IsNullOrWhiteSpace(data?.link))
+                return data!.link;
+
+            if (!string.IsNullOrWhiteSpace(data?.token))
+            {
+                // Monta link do site MVC com base no WebBase que já configuraste no MauiProgram
+                var web = WebBase; // ex.: https://escolainfosys.somee.com
+                var link = $"{web}/Account/ResetPassword?email={Uri.EscapeDataString(email)}&token={Uri.EscapeDataString(data!.token!)}";
+                return link;
+            }
+
+            return null;
+        }
+
+
 
     }
 }

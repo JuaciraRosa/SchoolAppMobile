@@ -1,4 +1,4 @@
-using MauiAppSchool.Helpers;
+Ôªøusing MauiAppSchool.Helpers;
 using MauiAppSchool.Services;
 
 namespace MauiAppSchool.Pages;
@@ -23,7 +23,6 @@ public partial class LoginPage : ContentPage
     }
 
 
-    // Forgot: pede email e chama o endpoint
     private async void OnForgotPassword(object sender, EventArgs e)
     {
         var email = await DisplayPromptAsync("Forgot password", "Enter your email:");
@@ -31,17 +30,24 @@ public partial class LoginPage : ContentPage
 
         try
         {
-            await _api.ForgotPasswordAsync(email.Trim());
-            await DisplayAlert("Sent",
-                "If the email exists, a reset token/link has been generated.",
-                "OK");
+            var link = await _api.ForgotPasswordGetLinkAsync(email.Trim());
+
+            if (!string.IsNullOrWhiteSpace(link))
+            {
+                await Launcher.Default.OpenAsync(new Uri(link));
+            }
+            else
+            {
+                await DisplayAlert("Sent",
+                    "If the email exists, we sent you a reset link. Please check your inbox.",
+                    "OK");
+            }
         }
-        catch (HttpRequestException ex)
+        catch (Exception ex)
         {
             await DisplayAlert("Error", ex.Message, "OK");
         }
     }
-
 
     private async void OnResetPassword(object sender, EventArgs e)
     {
@@ -77,7 +83,7 @@ public partial class LoginPage : ContentPage
     private async void OnGuest(object sender, EventArgs e)
     {
         await _api.UseAnonymousAsync(); // limpa token
-                                        // P·gina dedicada ao anÛnimo (n„o usa Shell/abas privadas)
+                                        // P√°gina dedicada ao an√≥nimo (n√£o usa Shell/abas privadas)
         Application.Current!.MainPage = new NavigationPage(new Pages.GuestPage());
     }
 
