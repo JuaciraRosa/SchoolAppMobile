@@ -12,6 +12,16 @@ namespace MauiAppSchool
             builder.UseMauiApp<App>();
 
             const string ApiBase = "https://escolainfosysapi.somee.com";
+
+            const string WebBase = "https://escolainfosys.somee.com"; // ← fotos/estáticos
+
+            builder.Services.AddSingleton(sp =>
+            {
+                var svc = new ApiService(ApiBase, webBase: WebBase);
+                _ = svc.LoadTokenAsync();
+                return svc;
+            });
+
             builder.Services.AddSingleton(sp =>
             {
                 var svc = new ApiService(ApiBase);

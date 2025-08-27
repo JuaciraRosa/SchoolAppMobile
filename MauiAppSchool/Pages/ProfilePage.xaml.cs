@@ -23,8 +23,18 @@ public partial class ProfilePage : ContentPage
         PhotoUrl.Text = me.ProfilePhoto;
         Email.Text = $"Email: {me.Email}";
         Role.Text = $"Role: {me.Role}";
-        Photo.Source = string.IsNullOrWhiteSpace(me.ProfilePhoto) ? null : ImageSource.FromUri(new Uri(me.ProfilePhoto));
+
+        try
+        {
+            var uri = _api.ResolvePhotoUri(me.ProfilePhoto);
+            Photo.Source = uri is null ? null : ImageSource.FromUri(uri);
+        }
+        catch
+        {
+            Photo.Source = null; // fallback opcional (ou uma imagem local)
+        }
     }
+
 
     private async void OnSave(object s, EventArgs e)
     {

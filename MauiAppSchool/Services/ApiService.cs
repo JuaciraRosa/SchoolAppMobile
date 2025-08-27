@@ -16,6 +16,8 @@ namespace MauiAppSchool.Services
 
         public string BaseUrl { get; }
 
+        public string WebBase { get; }   // ← host do site MVC (onde estão as fotos)
+
         // DTOs (mínimos para consumo)
         public record LoginRequest(string Email, string Password);
         public record LoginResponse(string Token, DateTime ExpiresAtUtc);
@@ -42,12 +44,13 @@ namespace MauiAppSchool.Services
         public record SystemInfoDto(string App, string Version, string? Author, DateTime? BuildDateUtc);
         public record SubjectStatusDto(int SubjectId, string Subject, double? Average, double? PassThreshold, int Absences, int MaxAbsences, bool ExceededAbsences, string Status);
 
-        public ApiService(string baseUrl, HttpClient? http = null)
+        public ApiService(string baseUrl, string? webBase = null, HttpClient? http = null)
         {
             BaseUrl = baseUrl.TrimEnd('/');
             _http = http ?? new HttpClient { Timeout = TimeSpan.FromSeconds(30) };
             _http.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
             _json = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
+            WebBase = (webBase ?? baseUrl).TrimEnd('/'); // se não passar, usa o da API
         }
 
         // Token
@@ -62,12 +65,22 @@ namespace MauiAppSchool.Services
             _http.DefaultRequestHeaders.Authorization = string.IsNullOrWhiteSpace(token) ? null : new AuthenticationHeaderValue("Bearer", token);
 
         // Helpers
-        static StringContent Body<T>(T obj) => new(JsonSerializer.Serialize(obj), Encoding.UTF8, "application/json");
+        static StringContent Body<T>(T obj) =>
+            new(JsonSerializer.Serialize(obj), Encoding.UTF8, "application/json");
+
         async Task<T> Read<T>(HttpResponseMessage resp)
         {
+            var url = resp.RequestMessage?.RequestUri?.ToString() ?? "<unknown>";
             var txt = await resp.Content.ReadAsStringAsync();
-            if (!resp.IsSuccessStatusCode) throw new HttpRequestException($"{(int)resp.StatusCode} {resp.ReasonPhrase}: {txt}");
-            return JsonSerializer.Deserialize<T>(txt, _json) ?? throw new InvalidOperationException("Empty response.");
+
+            if (!resp.IsSuccessStatusCode)
+                throw new HttpRequestException($"{(int)resp.StatusCode} {resp.ReasonPhrase} at {url}\n{txt}");
+
+            var data = JsonSerializer.Deserialize<T>(txt, _json);
+            if (data is null)
+                throw new InvalidOperationException($"Empty response at {url}");
+
+            return data;
         }
 
         // Auth
@@ -95,6 +108,24 @@ namespace MauiAppSchool.Services
             => await Read<ProfileVm>(await _http.GetAsync($"{BaseUrl}/api/students/profile"));
         public async Task UpdateProfileAsync(string? fullName = null, string? profilePhoto = null)
             => await Read<object>(await _http.PutAsync($"{BaseUrl}/api/students/profile", Body(new UpdateProfileRequest(fullName, profilePhoto))));
+
+        // Resolve URL absoluta da foto vinda do site MVC
+        public Uri? ResolvePhotoUri(string? raw)
+        {
+            if (string.IsNullOrWhiteSpace(raw)) return null;
+
+            raw = raw.Trim().Replace("\\", "/");
+
+            // já é absoluta?
+            if (Uri.TryCreate(raw, UriKind.Absolute, out var abs)) return abs;
+
+            // trata "~/..." → "/..."
+            if (raw.StartsWith("~/")) raw = raw[2..];
+            if (!raw.StartsWith("/")) raw = "/" + raw;
+
+            // combina com o host do site web (não a API)
+            return new Uri($"{WebBase}{raw}");
+        }
 
         // Notas / Faltas
         public async Task<IReadOnlyList<MarkDto>> GetMarksAsync(int? subjectId = null)
