@@ -123,32 +123,45 @@ namespace MauiAppSchool.Services
             await EnsureSuccess(resp);
         }
 
-        // Resolve URL absoluta da foto vinda do site MVC
         // ApiService.cs
         public async Task<Uri?> ResolvePhotoUriAsync(string? raw)
         {
             if (string.IsNullOrWhiteSpace(raw)) return null;
+
             raw = raw.Trim().Replace("\\", "/");
 
-            if (Uri.TryCreate(raw, UriKind.Absolute, out var abs)) return abs;
+            // 1) Já é URL absoluta?
+            if (Uri.TryCreate(raw, UriKind.Absolute, out var abs))
+                return abs;
 
-            // já veio com caminho? junta com o host do site
-            if (raw.Contains('/'))
-            {
-                if (raw.StartsWith("~/")) raw = raw[2..];
-                if (!raw.StartsWith("/")) raw = "/" + raw;
+            // Remove "~/" se vier assim
+            if (raw.StartsWith("~/", StringComparison.Ordinal))
+                raw = raw[2..];
+
+            // 2) Se apontar para /uploads/, prefere o host da API
+            if (raw.StartsWith("/uploads/", StringComparison.OrdinalIgnoreCase))
+                return new Uri($"{BaseUrl}{raw}");
+
+            // 3) Se for um caminho relativo (começa com '/'), usa o host do site (WebBase)
+            if (raw.StartsWith("/", StringComparison.Ordinal))
                 return new Uri($"{WebBase}{raw}");
-            }
 
-            // só o ficheiro: tenta /uploads/ e depois raiz
-            var candidate = $"{WebBase}/uploads/{raw}";
-            if (await UrlExistsAsync(candidate)) return new Uri(candidate);
+            // 4) Só o nome do ficheiro: tenta alguns candidatos
+            var candidates = new[]
+            {
+        $"{BaseUrl}/uploads/{raw}", // API (mais provável agora)
+        $"{WebBase}/uploads/{raw}", // Site
+        $"{WebBase}/{raw}",         // Site (raiz)
+        $"{BaseUrl}/{raw}"          // API (raiz)
+    };
 
-            var fallback = $"{WebBase}/{raw}";
-            if (await UrlExistsAsync(fallback)) return new Uri(fallback);
+            foreach (var c in candidates)
+                if (await UrlExistsAsync(c))
+                    return new Uri(c);
 
             return null;
         }
+
 
 
         // testa sem baixar o corpo inteiro
