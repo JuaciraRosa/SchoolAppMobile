@@ -96,29 +96,41 @@ public partial class ProfilePage : ContentPage
                     PickerTitle = "Choose a picture",
                     FileTypes = FilePickerFileType.Images
                 });
-                if (file is null) return;
+                if (file is null) return; // cancelado pelo usuário
 
-                using var stream = await file.OpenReadAsync();
+                await using var fileStream = await file.OpenReadAsync();
 
-                // Bufferiza para poder reusar o stream
-                using var ms = new MemoryStream();
-                await stream.CopyToAsync(ms);
-                var bytes = ms.ToArray();
-
-                // Mostra a preview local
+                // 1) PREVIEW local (mostra já a foto escolhida)
+                using var previewMs = new MemoryStream();
+                await fileStream.CopyToAsync(previewMs);
+                var bytes = previewMs.ToArray();
                 Photo.Source = ImageSource.FromStream(() => new MemoryStream(bytes));
 
-                // IMPORTANTE:
-                // A API hoje espera uma string/URL do site. Sem endpoint de upload,
-                // não dá para "salvar" esta foto local no servidor.
-                // Quando tiver upload, aqui você:
-                //  - faz upload -> recebe 'path'
-                //  - PhotoUrl.Text = path;
-                //  - await _api.UpdateProfileAsync(profilePhoto: path);
-                //  - await Load();
+                // 2) UPLOAD para o endpoint do StudentsController
+                //    (POST /api/students/profile/photo) — método do ApiService:
+                //    UploadStudentProfilePhotoAsync(byte[] bytes, string fileName)
+                var up = await _api.UploadStudentProfilePhotoAsync(bytes, file.FileName);
+
+                // 3) Atualiza o campo e a imagem com a URL pública devolvida pela API
+                PhotoUrl.Text = up.path;                    // ex.: /uploads/abc123.png
+                Photo.Source = ImageSource.FromUri(new Uri(up.url));
+
+                // 4) Recarrega o perfil para sincronizar tudo
+                await Load();
+
+                await DisplayAlert("Saved", "Photo updated.", "OK");
             }
-            catch { /* cancelado */ }
+            catch (OperationCanceledException)
+            {
+                // usuário cancelou — ignora silenciosamente
+            }
+            catch (Exception ex)
+            {
+                await DisplayAlert("Error", ex.Message, "OK");
+            }
         }
+
+
 
     }
 

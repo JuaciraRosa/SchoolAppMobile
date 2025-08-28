@@ -282,6 +282,33 @@ namespace MauiAppSchool.Services
             return null;
         }
 
+        public record UploadResponse(string path, string url);
+
+        public async Task<(string path, string url)> UploadStudentProfilePhotoAsync(byte[] bytes, string fileName)
+        {
+            using var content = new MultipartFormDataContent();
+            var part = new ByteArrayContent(bytes);
+            part.Headers.ContentType = new MediaTypeHeaderValue(GetMime(fileName));
+            content.Add(part, "file", fileName);
+
+            var resp = await _http.PostAsync($"{BaseUrl}/api/students/profile/photo", content);
+            var up = await Read<UploadResponse>(resp); // usa teu Read<T>
+            return (up.path, up.url);
+        }
+
+        private static string GetMime(string fileName)
+        {
+            var ext = Path.GetExtension(fileName).ToLowerInvariant();
+            return ext switch
+            {
+                ".png" => "image/png",
+                ".jpg" or ".jpeg" => "image/jpeg",
+                ".gif" => "image/gif",
+                ".webp" => "image/webp",
+                _ => "application/octet-stream"
+            };
+        }
+
 
 
     }
