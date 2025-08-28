@@ -6,8 +6,12 @@ namespace MauiAppSchool.Pages;
 public partial class ProfilePage : ContentPage
 {
     private readonly ApiService _api;
+    private ApiService.ProfileVm? _current; // perfil carregado
 
+    // Construtor usado pelo Shell/DI
     public ProfilePage() : this(ServiceHelper.GetRequiredService<ApiService>()) { }
+
+    // Construtor principal (DI resolve este)
     public ProfilePage(ApiService api)
     {
         InitializeComponent();
@@ -15,9 +19,16 @@ public partial class ProfilePage : ContentPage
         Loaded += async (_, __) => await Load();
     }
 
+    // Sobrecarga opcional (se quiser criar manualmente passando o perfil)
+    public ProfilePage(ApiService api, ApiService.ProfileVm? current) : this(api)
+    {
+        _current = current;
+    }
     private async Task Load()
     {
         var me = await _api.GetProfileAsync();
+        _current = me;
+
         FullName.Text = me.FullName;
         PhotoUrl.Text = me.ProfilePhoto;
         Email.Text = $"Email: {me.Email}";
@@ -25,7 +36,6 @@ public partial class ProfilePage : ContentPage
 
         try
         {
-            // AQUI usa o valor vindo do perfil, não a variável 'url'
             var uri = await _api.ResolvePhotoUriAsync(me.ProfilePhoto);
             Photo.Source = uri is null ? null : ImageSource.FromUri(uri);
         }
@@ -34,10 +44,27 @@ public partial class ProfilePage : ContentPage
 
     private async void OnSave(object s, EventArgs e)
     {
-        await _api.UpdateProfileAsync(FullName.Text, PhotoUrl.Text);
-        await Load();
-        await DisplayAlert("Saved", "Profile updated.", "OK");
+        try
+        {
+            var fullName = FullName.Text?.Trim();
+            var photo = PhotoUrl.Text?.Trim();
+
+            // Só envia o que realmente mudou
+            string? sendName = (_current is null || !string.Equals(_current.FullName, fullName, StringComparison.Ordinal))
+                                ? fullName : null;
+            string? sendPhoto = (_current is null || !string.Equals(_current.ProfilePhoto ?? "", photo ?? "", StringComparison.Ordinal))
+                                ? photo : null;
+
+            await _api.UpdateProfileAsync(sendName, sendPhoto);
+            await Load();
+            await DisplayAlert("Saved", "Profile updated.", "OK");
+        }
+        catch (Exception ex)
+        {
+            await DisplayAlert("Error", ex.Message, "OK");
+        }
     }
+
 
     // Toque na foto → escolher URL ou pré-visualizar do dispositivo
     // Toque na foto → escolher URL ou pré-visualização do dispositivo
@@ -71,19 +98,28 @@ public partial class ProfilePage : ContentPage
                 });
                 if (file is null) return;
 
-                // bufferiza o stream para não ficar usando um stream já fechado
                 using var stream = await file.OpenReadAsync();
+
+                // Bufferiza para poder reusar o stream
                 using var ms = new MemoryStream();
                 await stream.CopyToAsync(ms);
                 var bytes = ms.ToArray();
+
+                // Mostra a preview local
                 Photo.Source = ImageSource.FromStream(() => new MemoryStream(bytes));
 
-                await DisplayAlert("Note",
-                    "This only previews the image. To persist on the server, paste a URL from the site.",
-                    "OK");
+                // IMPORTANTE:
+                // A API hoje espera uma string/URL do site. Sem endpoint de upload,
+                // não dá para "salvar" esta foto local no servidor.
+                // Quando tiver upload, aqui você:
+                //  - faz upload -> recebe 'path'
+                //  - PhotoUrl.Text = path;
+                //  - await _api.UpdateProfileAsync(profilePhoto: path);
+                //  - await Load();
             }
-            catch { /* canceled */ }
+            catch { /* cancelado */ }
         }
+
     }
 
 

@@ -37,7 +37,8 @@
 
             <!-- mantém MESMOS nomes -->
             <Entry x:Name="FullName" Placeholder="Full name"/>
-            <Entry x:Name="PhotoUrl" Placeholder="Photo URL"/>
+            <Entry x:Name="PhotoUrl" Placeholder="Photo URL" IsVisible="False"/>
+
 
             <Button Text="Save" Clicked="OnSave" />
 
