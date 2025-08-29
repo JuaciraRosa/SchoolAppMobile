@@ -23,60 +23,12 @@ public partial class LoginPage : ContentPage
     }
 
 
-    private async void OnForgotPassword(object sender, EventArgs e)
+    private async void OpenForgotOnWeb(object s, EventArgs e)
     {
-        var email = await DisplayPromptAsync("Forgot password", "Enter your email:");
-        if (string.IsNullOrWhiteSpace(email)) return;
-
-        try
-        {
-            var link = await _api.ForgotPasswordGetLinkAsync(email.Trim());
-
-            if (!string.IsNullOrWhiteSpace(link))
-            {
-                await Browser.Default.OpenAsync(new Uri(link), BrowserLaunchMode.External);
-            }
-            else
-            {
-                await DisplayAlert("Sent",
-                    "If the email exists, a reset link was sent. Please check your inbox.",
-                    "OK");
-            }
-        }
-        catch (Exception ex)
-        {
-            await DisplayAlert("Error", ex.Message, "OK");
-        }
+        var url = $"{_api.WebBase}/Account/ForgotPassword";
+        await Browser.OpenAsync(new Uri(url), BrowserLaunchMode.External);
     }
 
-    private async void OnResetPassword(object sender, EventArgs e)
-    {
-        var email = await DisplayPromptAsync("Reset password", "Email:");
-        if (string.IsNullOrWhiteSpace(email)) return;
-
-        var token = await DisplayPromptAsync("Reset password", "Token (paste the code):");
-        if (string.IsNullOrWhiteSpace(token)) return;
-        var newPwd = await DisplayPromptAsync(
-            "Reset password",
-            "New password:",
-            accept: "OK",
-            cancel: "Cancel",
-            placeholder: "Enter new password",
-            maxLength: -1,
-            keyboard: Keyboard.Text);
-
-        if (string.IsNullOrWhiteSpace(newPwd)) return;
-
-        try
-        {
-            await _api.ResetPasswordAsync(email.Trim(), token.Trim(), newPwd);
-            await DisplayAlert("Done", "Password updated. You can log in now.", "OK");
-        }
-        catch (HttpRequestException ex)
-        {
-            await DisplayAlert("Error", ex.Message, "OK");
-        }
-    }
 
 
 

@@ -12,18 +12,14 @@
   
 
         <BoxView HeightRequest="1" Opacity="0.15" Margin="0,12"/>
-    
+
             <Button Text="Forgot password"
-          Clicked="OnForgotPassword"
-          BackgroundColor="{DynamicResource SecondaryColor}"
-          TextColor="White"/>
+        Clicked="OpenForgotOnWeb"
+        BackgroundColor="{DynamicResource SecondaryColor}"
+        TextColor="White"/>
 
-        <Button Text="Reset password (have a token)"
-          Clicked="OnResetPassword"
-          BackgroundColor="{DynamicResource SecondaryColor}"
-          TextColor="White"/>
 
-        <Button Text="Continue as guest"
+            <Button Text="Continue as guest"
           Clicked="OnGuest"
           BackgroundColor="{DynamicResource TertiaryColor}"
           TextColor="Black"/>

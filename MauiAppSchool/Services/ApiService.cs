@@ -118,10 +118,17 @@ namespace MauiAppSchool.Services
         // Perfil: PUT pode retornar 204
         public async Task UpdateProfileAsync(string? fullName = null, string? profilePhoto = null)
         {
-            var resp = await _http.PutAsync($"{BaseUrl}/api/students/profile",
-                                            Body(new UpdateProfileRequest(fullName, profilePhoto)));
-            await EnsureSuccess(resp);
+            var resp = await _http.PutAsync(
+                $"{BaseUrl}/api/students/profile",
+                Body(new UpdateProfileRequest(fullName, profilePhoto)));
+
+            if (!resp.IsSuccessStatusCode)
+            {
+                var txt = await resp.Content.ReadAsStringAsync();
+                throw new HttpRequestException($"{(int)resp.StatusCode} {resp.ReasonPhrase}: {txt}");
+            }
         }
+
 
         // ApiService.cs
         public async Task<Uri?> ResolvePhotoUriAsync(string? raw)
@@ -296,18 +303,24 @@ namespace MauiAppSchool.Services
         }
 
         public record UploadResponse(string path, string url);
-
         public async Task<(string path, string url)> UploadStudentProfilePhotoAsync(byte[] bytes, string fileName)
         {
-            using var content = new MultipartFormDataContent();
-            var part = new ByteArrayContent(bytes);
-            part.Headers.ContentType = new MediaTypeHeaderValue(GetMime(fileName));
-            content.Add(part, "file", fileName);
+            using var form = new MultipartFormDataContent();
+            var fileContent = new ByteArrayContent(bytes);
+            fileContent.Headers.ContentType = new MediaTypeHeaderValue("application/octet-stream");
+            form.Add(fileContent, "file", fileName); // nome do campo TEM que ser "file"
 
-            var resp = await _http.PostAsync($"{BaseUrl}/api/students/profile/photo", content);
-            var up = await Read<UploadResponse>(resp); // usa teu Read<T>
-            return (up.path, up.url);
+            var resp = await _http.PostAsync($"{BaseUrl}/api/students/profile/photo", form);
+            var txt = await resp.Content.ReadAsStringAsync();
+            if (!resp.IsSuccessStatusCode)
+                throw new HttpRequestException($"{(int)resp.StatusCode} {resp.ReasonPhrase}: {txt}");
+
+            using var doc = JsonDocument.Parse(txt);
+            var root = doc.RootElement;
+            return (root.GetProperty("path").GetString()!, root.GetProperty("url").GetString()!);
         }
+
+
 
         private static string GetMime(string fileName)
         {

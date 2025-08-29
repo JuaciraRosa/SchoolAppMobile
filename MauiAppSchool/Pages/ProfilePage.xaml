@@ -6,6 +6,8 @@
 
     <ContentPage.ToolbarItems>
         <ToolbarItem Text="Home" Clicked="GoHome"/>
+        <ToolbarItem Text="Edit on Web" Clicked="OpenEditProfileOnWeb"/>
+        <ToolbarItem Text="Change Password" Clicked="OpenChangePasswordOnWeb"/>
     </ContentPage.ToolbarItems>
 
     <ScrollView>
