@@ -33,6 +33,8 @@ namespace MauiAppSchool
             builder.Services.AddTransient<Pages.StatusPage>();
             builder.Services.AddTransient<Pages.ProfilePage>();
             builder.Services.AddTransient<Pages.PublicPage>();
+            builder.Services.AddTransient<Pages.ChangePhotoPage>();
+
 
             // ✅ constrói uma vez e retorna o mesmo 'app'
             var app = builder.Build();

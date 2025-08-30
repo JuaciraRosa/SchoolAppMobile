@@ -13,17 +13,23 @@
 
         <BoxView HeightRequest="1" Opacity="0.15" Margin="0,12"/>
 
-            <Button Text="Forgot password"
-        Clicked="OpenForgotOnWeb"
+            <!-- já existe -->
+            <Button Text="Forgot password" Clicked="OpenForgotOnWeb"
+        BackgroundColor="{DynamicResource SecondaryColor}" TextColor="White"/>
+
+            <!-- novos (in-app) -->
+            <Button Text="Forgot (in-app)" Clicked="GoForgotInApp"/>
+            <Button Text="Reset (in-app)"  Clicked="GoResetInApp"/>
+
+            <Button Text="Continue as guest" Clicked="OnGuest"
+        BackgroundColor="{DynamicResource TertiaryColor}" TextColor="Black"/>
+
+            <Button Text="Logout"
+        Clicked="OnLogout"
         BackgroundColor="{DynamicResource SecondaryColor}"
         TextColor="White"/>
 
 
-            <Button Text="Continue as guest"
-          Clicked="OnGuest"
-          BackgroundColor="{DynamicResource TertiaryColor}"
-          TextColor="Black"/>
-
-    </VerticalStackLayout>
+        </VerticalStackLayout>
     </ScrollView>
 </ContentPage>

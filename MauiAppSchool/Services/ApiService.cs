@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Microsoft.AspNetCore.SignalR.Client;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net;
@@ -14,12 +15,20 @@ namespace MauiAppSchool.Services
         private readonly HttpClient _http;
         private readonly JsonSerializerOptions _json;
         private string? _token;
+        HubConnection? _hub;
+        public event EventHandler<GradeNotification>? GradePushed;
+        public event EventHandler<StatusNotification>? StatusPushed;
+
+        private CancellationTokenSource? _feedCts;
+        private DateTime _feedSince = DateTime.UtcNow;
+
+        public record GradeNotification(int SubjectId, string? Subject, float Value, string? EvaluationType, DateTime Date);
+        public record StatusNotification(int SubjectId, string Subject, string Status, double? Average);
 
         public string BaseUrl { get; }
+        public string WebBase { get; }   // domínio do site (MVC) — p/ abrir páginas e resolver fotos
 
-        public string WebBase { get; }   // ← host do site MVC (onde estão as fotos)
-
-        // DTOs (mínimos para consumo)
+        // ===== DTOs mínimas =====
         public record LoginRequest(string Email, string Password);
         public record LoginResponse(string Token, DateTime ExpiresAtUtc);
 
@@ -45,66 +54,120 @@ namespace MauiAppSchool.Services
         public record SystemInfoDto(string App, string Version, string? Author, DateTime? BuildDateUtc);
         public record SubjectStatusDto(int SubjectId, string Subject, double? Average, double? PassThreshold, int Absences, int MaxAbsences, bool ExceededAbsences, string Status);
 
+        // Forgot/Reset DTOs
+        public record ForgotPasswordReq(string Email);
+        public record ResetPasswordReq(string Email, string? Code, string? Token, string NewPassword);
+
         public ApiService(string baseUrl, string? webBase = null, HttpClient? http = null)
         {
             BaseUrl = baseUrl.TrimEnd('/');
+            WebBase = (webBase ?? baseUrl).TrimEnd('/');
+
             _http = http ?? new HttpClient { Timeout = TimeSpan.FromSeconds(30) };
             _http.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
+
             _json = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
-            WebBase = (webBase ?? baseUrl).TrimEnd('/'); // se não passar, usa o da API
         }
 
-        // Token
-        public async Task LoadTokenAsync() { try { _token = await SecureStorage.GetAsync("jwt_token"); } catch { _token = null; } SetAuth(_token); }
+        // ===== Token =====
+        public async Task LoadTokenAsync()
+        {
+            try { _token = await SecureStorage.GetAsync("jwt_token"); }
+            catch { _token = null; }
+            SetAuth(_token);
+        }
+
         public async Task SaveTokenAsync(string? token)
         {
-            _token = token; SetAuth(_token);
+            _token = token;
+            SetAuth(_token);
             if (token is null) SecureStorage.Remove("jwt_token");
             else await SecureStorage.SetAsync("jwt_token", token);
         }
-        void SetAuth(string? token) =>
-            _http.DefaultRequestHeaders.Authorization = string.IsNullOrWhiteSpace(token) ? null : new AuthenticationHeaderValue("Bearer", token);
 
-        // Helpers
-        static StringContent Body<T>(T obj) =>
+        void SetAuth(string? token) =>
+            _http.DefaultRequestHeaders.Authorization =
+                string.IsNullOrWhiteSpace(token) ? null : new AuthenticationHeaderValue("Bearer", token);
+
+        public Task UseAnonymousAsync() => SaveTokenAsync(null);
+
+        // ===== Helpers =====
+        private static StringContent Body<T>(T obj) =>
             new(JsonSerializer.Serialize(obj), Encoding.UTF8, "application/json");
-        // << SUBSTITUI O TEU Read<T> >>
-        async Task<T> Read<T>(HttpResponseMessage resp)
+
+        private async Task<T> Read<T>(HttpResponseMessage resp)
         {
             var url = resp.RequestMessage?.RequestUri?.ToString() ?? "<unknown>";
             var txt = await resp.Content.ReadAsStringAsync();
 
-            if (resp.StatusCode is HttpStatusCode.Unauthorized or HttpStatusCode.Forbidden)
-                throw new UnauthorizedAccessException($"{(int)resp.StatusCode} at {url}");
-
             if (!resp.IsSuccessStatusCode)
                 throw new HttpRequestException($"{(int)resp.StatusCode} {resp.ReasonPhrase} at {url}\n{txt}");
 
-            // Suporte a 204/200 sem corpo: se T==object ou NoContent, não tentar JSON
-            if (resp.StatusCode == HttpStatusCode.NoContent || string.IsNullOrWhiteSpace(txt))
-            {
-                if (typeof(T) == typeof(object)) return default!; // null e pronto
-                throw new InvalidOperationException($"Empty response at {url}");
-            }
-
             var data = JsonSerializer.Deserialize<T>(txt, _json);
-            if (data is null) throw new InvalidOperationException($"Empty response at {url}");
+            if (data is null)
+                throw new InvalidOperationException($"Empty response at {url}");
+
             return data;
         }
 
-        // Auth
+        // ===== Auth =====
         public async Task<LoginResponse> LoginAsync(string email, string password)
         {
-            var resp = await _http.PostAsync($"{BaseUrl}/api/auth/login", Body(new LoginRequest(email, password)));
+            var resp = await _http.PostAsync($"{BaseUrl}/api/auth/login",
+                Body(new LoginRequest(email, password)));
             var data = await Read<LoginResponse>(resp);
             await SaveTokenAsync(data.Token);
             return data;
         }
+
         public Task LogoutAsync() => SaveTokenAsync(null);
 
-        // Público
-        public async Task<IReadOnlyList<CourseDto>> GetCoursesAsync()
-            => await Read<List<CourseDto>>(await _http.GetAsync($"{BaseUrl}/api/public/courses"));
+        // Forgot (envia email) — simples
+        public async Task ForgotPasswordAsync(string email)
+        {
+            var resp = await _http.PostAsync($"{BaseUrl}/api/auth/forgot-password",
+                Body(new ForgotPasswordReq(email)));
+            if (!resp.IsSuccessStatusCode)
+            {
+                var txt = await resp.Content.ReadAsStringAsync();
+                throw new HttpRequestException($"{(int)resp.StatusCode} {resp.ReasonPhrase}: {txt}");
+            }
+        }
+
+        // Forgot (tenta extrair link, se a API devolver {link})
+        public async Task<string?> ForgotPasswordGetLinkAsync(string email)
+        {
+            var resp = await _http.PostAsync($"{BaseUrl}/api/auth/forgot-password",
+                Body(new ForgotPasswordReq(email)));
+            var txt = await resp.Content.ReadAsStringAsync();
+
+            if (!resp.IsSuccessStatusCode)
+                throw new HttpRequestException($"{(int)resp.StatusCode} {resp.ReasonPhrase}: {txt}");
+
+            try
+            {
+                using var doc = JsonDocument.Parse(txt);
+                return doc.RootElement.TryGetProperty("link", out var l) ? l.GetString() : null;
+            }
+            catch { return null; }
+        }
+
+        // Reset 100% na app — usa o "code" (Base64Url) do email
+        public async Task ResetPasswordAsync(string email, string code, string newPassword)
+        {
+            var body = new ResetPasswordReq(email, Code: code, Token: null, NewPassword: newPassword);
+            var resp = await _http.PostAsync($"{BaseUrl}/api/auth/reset-password", Body(body));
+            if (!resp.IsSuccessStatusCode)
+            {
+                var txt = await resp.Content.ReadAsStringAsync();
+                throw new HttpRequestException($"{(int)resp.StatusCode} {resp.ReasonPhrase}: {txt}");
+            }
+        }
+
+        // ===== Público =====
+        public async Task<IReadOnlyList<CourseDto>> GetCoursesAsync() =>
+            await Read<List<CourseDto>>(await _http.GetAsync($"{BaseUrl}/api/public/courses"));
+
         public async Task<IReadOnlyList<SubjectDto>> GetSubjectsAsync(int? courseId = null)
         {
             var url = $"{BaseUrl}/api/public/subjects";
@@ -112,14 +175,14 @@ namespace MauiAppSchool.Services
             return await Read<List<SubjectDto>>(await _http.GetAsync(url));
         }
 
-        // Perfil
-        public async Task<ProfileVm> GetProfileAsync()
-            => await Read<ProfileVm>(await _http.GetAsync($"{BaseUrl}/api/students/profile"));
-        // Perfil: PUT pode retornar 204
+        // ===== Perfil =====
+        public async Task<ProfileVm> GetProfileAsync() =>
+            await Read<ProfileVm>(await _http.GetAsync($"{BaseUrl}/api/students/profile"));
+
+        // Importante: não tenta desserializar 200 OK vazio
         public async Task UpdateProfileAsync(string? fullName = null, string? profilePhoto = null)
         {
-            var resp = await _http.PutAsync(
-                $"{BaseUrl}/api/students/profile",
+            var resp = await _http.PutAsync($"{BaseUrl}/api/students/profile",
                 Body(new UpdateProfileRequest(fullName, profilePhoto)));
 
             if (!resp.IsSuccessStatusCode)
@@ -129,54 +192,71 @@ namespace MauiAppSchool.Services
             }
         }
 
+        // Upload de foto p/ API (endpoint: POST /api/students/profile/photo)
+        // Retorna (path relativo e url absoluta) conforme resposta da API.
+        public async Task<(string path, string url)> UploadStudentProfilePhotoAsync(byte[] bytes, string fileName)
+        {
+            using var form = new MultipartFormDataContent();
 
-        // ApiService.cs
+            var fileContent = new ByteArrayContent(bytes);
+            var ext = System.IO.Path.GetExtension(fileName).ToLowerInvariant();
+            var mime = ext switch
+            {
+                ".jpg" or ".jpeg" => "image/jpeg",
+                ".png" => "image/png",
+                ".gif" => "image/gif",
+                ".webp" => "image/webp",
+                _ => "application/octet-stream"
+            };
+            fileContent.Headers.ContentType = new MediaTypeHeaderValue(mime);
+
+            // O NOME DO CAMPO deve ser "file" (conforme controller)
+            form.Add(fileContent, "file", fileName);
+
+            var resp = await _http.PostAsync($"{BaseUrl}/api/students/profile/photo", form);
+            var txt = await resp.Content.ReadAsStringAsync();
+
+            if (!resp.IsSuccessStatusCode)
+                throw new HttpRequestException($"{(int)resp.StatusCode} {resp.ReasonPhrase}: {txt}");
+
+            using var doc = JsonDocument.Parse(txt);
+            var root = doc.RootElement;
+            var path = root.GetProperty("path").GetString()!;
+            var url = root.GetProperty("url").GetString()!;
+            return (path, url);
+        }
+
+        // Resolver URL absoluta da foto (prioriza /uploads do WebBase)
         public async Task<Uri?> ResolvePhotoUriAsync(string? raw)
         {
             if (string.IsNullOrWhiteSpace(raw)) return null;
-
             raw = raw.Trim().Replace("\\", "/");
 
-            // 1) Já é URL absoluta?
-            if (Uri.TryCreate(raw, UriKind.Absolute, out var abs))
-                return abs;
+            // já absoluta
+            if (Uri.TryCreate(raw, UriKind.Absolute, out var abs)) return abs;
 
-            // Remove "~/" se vier assim
-            if (raw.StartsWith("~/", StringComparison.Ordinal))
-                raw = raw[2..];
-
-            // 2) Se apontar para /uploads/, prefere o host da API
-            if (raw.StartsWith("/uploads/", StringComparison.OrdinalIgnoreCase))
-                return new Uri($"{BaseUrl}{raw}");
-
-            // 3) Se for um caminho relativo (começa com '/'), usa o host do site (WebBase)
-            if (raw.StartsWith("/", StringComparison.Ordinal))
-                return new Uri($"{WebBase}{raw}");
-
-            // 4) Só o nome do ficheiro: tenta alguns candidatos
-            var candidates = new[]
+            // já veio com pasta? junta com WebBase
+            if (raw.Contains('/'))
             {
-        $"{BaseUrl}/uploads/{raw}", // API (mais provável agora)
-        $"{WebBase}/uploads/{raw}", // Site
-        $"{WebBase}/{raw}",         // Site (raiz)
-        $"{BaseUrl}/{raw}"          // API (raiz)
-    };
+                if (raw.StartsWith("~/")) raw = raw[2..];
+                if (!raw.StartsWith("/")) raw = "/" + raw;
+                return new Uri($"{WebBase}{raw}");
+            }
 
-            foreach (var c in candidates)
-                if (await UrlExistsAsync(c))
-                    return new Uri(c);
+            // só o ficheiro: tenta /uploads/ e depois raiz
+            var candidate = $"{WebBase}/uploads/{raw}";
+            if (await UrlExistsAsync(candidate)) return new Uri(candidate);
+
+            var fallback = $"{WebBase}/{raw}";
+            if (await UrlExistsAsync(fallback)) return new Uri(fallback);
 
             return null;
         }
 
-
-
-        // testa sem baixar o corpo inteiro
         private async Task<bool> UrlExistsAsync(string url)
         {
             try
             {
-                // primeiro HEAD (rápido). Se o host bloquear, tenta GET só cabeçalhos.
                 using var head = new HttpRequestMessage(HttpMethod.Head, url);
                 using var r1 = await _http.SendAsync(head, HttpCompletionOption.ResponseHeadersRead);
                 if ((int)r1.StatusCode >= 200 && (int)r1.StatusCode < 300) return true;
@@ -188,154 +268,103 @@ namespace MauiAppSchool.Services
                 var ct = r2.Content.Headers.ContentType?.MediaType;
                 return ct != null && ct.StartsWith("image/", StringComparison.OrdinalIgnoreCase);
             }
-            catch
-            {
-                return false;
-            }
+            catch { return false; }
         }
 
-
-
-        // Notas / Faltas
+        // ===== Notas / Faltas =====
         public async Task<IReadOnlyList<MarkDto>> GetMarksAsync(int? subjectId = null)
         {
             var url = $"{BaseUrl}/api/marks";
             if (subjectId.HasValue) url += $"?subjectId={subjectId.Value}";
             return await Read<List<MarkDto>>(await _http.GetAsync(url));
         }
-        public async Task<AbsencesResponse> GetAbsencesAsync()
-            => await Read<AbsencesResponse>(await _http.GetAsync($"{BaseUrl}/api/absences"));
 
-        // Pedidos
-        public async Task CreateEnrollmentRequestAsync(int subjectId, string? note = null)
-            => await Read<object>(await _http.PostAsync($"{BaseUrl}/api/enrollment-requests", Body(new CreateEnrollmentRequestDto(subjectId, note))));
-        public async Task<IReadOnlyList<EnrollmentRequestDto>> GetMyEnrollmentRequestsAsync()
-            => await Read<List<EnrollmentRequestDto>>(await _http.GetAsync($"{BaseUrl}/api/enrollment-requests/my"));
+        public async Task<AbsencesResponse> GetAbsencesAsync() =>
+            await Read<AbsencesResponse>(await _http.GetAsync($"{BaseUrl}/api/absences"));
 
-        // Feed / Status / Info
+        // ===== Pedidos =====
+        public async Task CreateEnrollmentRequestAsync(int subjectId, string? note = null) =>
+            await Read<object>(await _http.PostAsync(
+                $"{BaseUrl}/api/enrollment-requests",
+                Body(new CreateEnrollmentRequestDto(subjectId, note))));
+
+        public async Task<IReadOnlyList<EnrollmentRequestDto>> GetMyEnrollmentRequestsAsync() =>
+            await Read<List<EnrollmentRequestDto>>(await _http.GetAsync($"{BaseUrl}/api/enrollment-requests/my"));
+
+        // ===== Feed / Status / Info =====
         public async Task<FeedResponse> GetFeedAsync(DateTime? since = null)
         {
             var url = $"{BaseUrl}/api/feed";
             if (since.HasValue) url += $"?since={since.Value.ToUniversalTime():O}";
             return await Read<FeedResponse>(await _http.GetAsync(url));
         }
-        public async Task<IReadOnlyList<SubjectStatusDto>> GetStatusPerSubjectAsync()
-            => await Read<List<SubjectStatusDto>>(await _http.GetAsync($"{BaseUrl}/api/status/per-subject"));
-        public async Task<SystemInfoDto> GetSystemInfoAsync()
-            => await Read<SystemInfoDto>(await _http.GetAsync($"{BaseUrl}/api/system/info"));
 
+        public async Task<IReadOnlyList<SubjectStatusDto>> GetStatusPerSubjectAsync() =>
+            await Read<List<SubjectStatusDto>>(await _http.GetAsync($"{BaseUrl}/api/status/per-subject"));
 
-    
-        public record ForgotPasswordRequest(string Email);
-        public record ResetPasswordRequest(string Email, string Token, string NewPassword);
+        public async Task<SystemInfoDto> GetSystemInfoAsync() =>
+            await Read<SystemInfoDto>(await _http.GetAsync($"{BaseUrl}/api/system/info"));
+        // =======================
 
-
-        // AUTH flows que não retornam JSON -> usar EnsureSuccess
-        public async Task ForgotPasswordAsync(string email)
+        public async Task StartNotificationsAsync()
         {
-            var resp = await _http.PostAsync($"{BaseUrl}/api/auth/forgot-password",
-                                             Body(new ForgotPasswordRequest(email)));
-            await EnsureSuccess(resp);
+            if (_hub != null) return;
+
+            var hubUrl = $"{BaseUrl}/hubs/notify"; // BaseUrl já é https://escolainfosysapi.somee.com
+            _hub = new HubConnectionBuilder()
+                .WithUrl(hubUrl, opt =>
+                {
+                    if (!string.IsNullOrWhiteSpace(_token))
+                        opt.AccessTokenProvider = () => Task.FromResult(_token)!;
+                })
+                .WithAutomaticReconnect()
+                .Build();
+
+            _hub.On<GradeNotification>("gradeAdded", g => GradePushed?.Invoke(this, g));
+            _hub.On<StatusNotification>("statusChanged", s => StatusPushed?.Invoke(this, s));
+
+            try { await _hub.StartAsync(); }
+            catch { /* se falhar, cai no fallback de polling (B) */ }
         }
 
-        public async Task ResetPasswordAsync(string email, string token, string newPassword)
+
+        // Iniciar polling do feed
+        public void StartFeedPolling(TimeSpan? period = null, Action<IReadOnlyList<FeedItem>>? onNew = null)
         {
-            var resp = await _http.PostAsync($"{BaseUrl}/api/auth/reset-password",
-                                             Body(new ResetPasswordRequest(email, token, newPassword)));
-            await EnsureSuccess(resp);
-        }
+            StopFeedPolling(); // garante uma única instância
 
-        // opcional: login anónimo = limpa token
-        public Task UseAnonymousAsync() => SaveTokenAsync(null);
+            _feedCts = new CancellationTokenSource();
+            var every = period ?? TimeSpan.FromSeconds(30);
 
-
-        // helper para respostas sem corpo
-        async Task EnsureSuccess(HttpResponseMessage resp)
-        {
-            var url = resp.RequestMessage?.RequestUri?.ToString() ?? "<unknown>";
-            var txt = await resp.Content.ReadAsStringAsync();
-
-            if (resp.StatusCode is HttpStatusCode.Unauthorized or HttpStatusCode.Forbidden)
-                throw new UnauthorizedAccessException($"{(int)resp.StatusCode} at {url}");
-
-            if (!resp.IsSuccessStatusCode)
-                throw new HttpRequestException($"{(int)resp.StatusCode} {resp.ReasonPhrase} at {url}\n{txt}");
-        }
-
-        // DTO para resposta opcional do servidor (link e/ou token)
-        public record ForgotPasswordResponse(string? link, string? token);
-
-        // Tenta obter o link de reset diretamente da API; se vier só token, monta o link do site MVC.
-        // Se não vier corpo nenhum, retorna null (usuário seguirá pelo e-mail).
-        public async Task<string?> ForgotPasswordGetLinkAsync(string email)
-        {
-            var resp = await _http.PostAsync($"{BaseUrl}/api/auth/forgot-password",
-                                             Body(new ForgotPasswordRequest(email)));
-            // Se falhar, lança erro formatado (401/403/etc.)
-            await EnsureSuccess(resp);
-
-            var txt = await resp.Content.ReadAsStringAsync();
-            if (string.IsNullOrWhiteSpace(txt))
-                return null; // servidor só enviou e-mail, sem JSON
-
-            ForgotPasswordResponse? data = null;
-            try
+            _ = Task.Run(async () =>
             {
-                data = JsonSerializer.Deserialize<ForgotPasswordResponse>(txt, _json);
-            }
-            catch
-            {
-                // se vier algum JSON estranho, ignora e cai no null
-            }
+                while (!_feedCts!.IsCancellationRequested)
+                {
+                    try
+                    {
+                        var feed = await GetFeedAsync(_feedSince);
+                        var list = feed.items?.ToList() ?? new List<FeedItem>();
+                        if (list.Count > 0)
+                        {
+                            onNew?.Invoke(list);
+                            var max = list.Max(i => i.Date);
+                            if (max > _feedSince) _feedSince = max;
+                        }
+                    }
+                    catch { /* ignora e tenta de novo */ }
 
-            if (!string.IsNullOrWhiteSpace(data?.link))
-                return data!.link;
-
-            if (!string.IsNullOrWhiteSpace(data?.token))
-            {
-                // Monta link do site MVC com base no WebBase que já configuraste no MauiProgram
-                var web = WebBase; // ex.: https://escolainfosys.somee.com
-                var link = $"{web}/Account/ResetPassword?email={Uri.EscapeDataString(email)}&token={Uri.EscapeDataString(data!.token!)}";
-                return link;
-            }
-
-            return null;
+                    try { await Task.Delay(every, _feedCts.Token); }
+                    catch (TaskCanceledException) { }
+                }
+            });
         }
 
-        public record UploadResponse(string path, string url);
-        public async Task<(string path, string url)> UploadStudentProfilePhotoAsync(byte[] bytes, string fileName)
+        // Parar polling (use ao deslogar)
+        public void StopFeedPolling()
         {
-            using var form = new MultipartFormDataContent();
-            var fileContent = new ByteArrayContent(bytes);
-            fileContent.Headers.ContentType = new MediaTypeHeaderValue("application/octet-stream");
-            form.Add(fileContent, "file", fileName); // nome do campo TEM que ser "file"
-
-            var resp = await _http.PostAsync($"{BaseUrl}/api/students/profile/photo", form);
-            var txt = await resp.Content.ReadAsStringAsync();
-            if (!resp.IsSuccessStatusCode)
-                throw new HttpRequestException($"{(int)resp.StatusCode} {resp.ReasonPhrase}: {txt}");
-
-            using var doc = JsonDocument.Parse(txt);
-            var root = doc.RootElement;
-            return (root.GetProperty("path").GetString()!, root.GetProperty("url").GetString()!);
+            _feedCts?.Cancel();
+            _feedCts = null;
         }
-
-
-
-        private static string GetMime(string fileName)
-        {
-            var ext = Path.GetExtension(fileName).ToLowerInvariant();
-            return ext switch
-            {
-                ".png" => "image/png",
-                ".jpg" or ".jpeg" => "image/jpeg",
-                ".gif" => "image/gif",
-                ".webp" => "image/webp",
-                _ => "application/octet-stream"
-            };
-        }
-
-
 
     }
 }

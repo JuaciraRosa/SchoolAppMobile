@@ -2,28 +2,28 @@
 using MauiAppSchool.Services;
 
 namespace MauiAppSchool.Pages;
-
 public partial class ProfilePage : ContentPage
 {
     private readonly ApiService _api;
-    private ApiService.ProfileVm? _current; // perfil carregado
 
-    // Construtor usado pelo Shell/DI
+    // FALTAVA isto:
+    private ApiService.ProfileVm? _current;
+
     public ProfilePage() : this(ServiceHelper.GetRequiredService<ApiService>()) { }
 
-    // Construtor principal (DI resolve este)
     public ProfilePage(ApiService api)
     {
         InitializeComponent();
         _api = api;
-        Loaded += async (_, __) => await Load();
     }
 
-    // Sobrecarga opcional (se quiser criar manualmente passando o perfil)
-    public ProfilePage(ApiService api, ApiService.ProfileVm? current) : this(api)
+    // Carrega SEMPRE que a página aparece (1ª vez e quando volta do navegador)
+    protected override async void OnAppearing()
     {
-        _current = current;
+        base.OnAppearing();
+        await Load();
     }
+
     private async Task Load()
     {
         var me = await _api.GetProfileAsync();
@@ -49,7 +49,7 @@ public partial class ProfilePage : ContentPage
             var fullName = FullName.Text?.Trim();
             var photo = PhotoUrl.Text?.Trim();
 
-            // Só envia o que realmente mudou
+            // Só envia o que de fato mudou
             string? sendName = (_current is null || !string.Equals(_current.FullName, fullName, StringComparison.Ordinal))
                                 ? fullName : null;
             string? sendPhoto = (_current is null || !string.Equals(_current.ProfilePhoto ?? "", photo ?? "", StringComparison.Ordinal))
@@ -83,10 +83,10 @@ public partial class ProfilePage : ContentPage
             var bytes = ms.ToArray();
             Photo.Source = ImageSource.FromStream(() => new MemoryStream(bytes));
 
-            // UPLOAD real para o API (POST /api/students/profile/photo)
+            // UPLOAD real para o endpoint da API (se estiveres a usar este fluxo)
             var up = await _api.UploadStudentProfilePhotoAsync(bytes, file.FileName);
 
-            // Mostra a URL pública que o API devolveu
+            // Mostra a URL pública que a API devolveu
             Photo.Source = ImageSource.FromUri(new Uri(up.url));
 
             // Recarrega para sincronizar nome/foto
@@ -101,16 +101,21 @@ public partial class ProfilePage : ContentPage
         }
     }
 
-
-
     private async void GoHome(object sender, EventArgs e)
-        => await Shell.Current.GoToAsync("//home");
+        => await Shell.Current.GoToAsync("///home");
 
     private async void OpenEditProfileOnWeb(object s, EventArgs e)
-    => await Browser.OpenAsync(new Uri($"{_api.WebBase}/Account/EditProfile"),
-                               BrowserLaunchMode.External);
+        => await Browser.OpenAsync(new Uri($"{_api.WebBase}/Account/EditProfile"),
+                                   BrowserLaunchMode.External);
 
     private async void OpenChangePasswordOnWeb(object s, EventArgs e)
         => await Browser.OpenAsync(new Uri($"{_api.WebBase}/Account/ChangePassword"),
                                    BrowserLaunchMode.External);
+
+    private async void OpenChangePhotoInApp(object s, EventArgs e)
+    {
+        // usando Shell route registrada
+        await Shell.Current.GoToAsync("///changephoto");
+    }
+
 }

@@ -13,36 +13,36 @@
     <ScrollView>
         <VerticalStackLayout Padding="20" Spacing="16">
 
-            <!-- avatar redondo com gesto de toque (sem Shadow inválido) -->
+            <!-- avatar redondo -->
             <Grid HorizontalOptions="Center" WidthRequest="120" HeightRequest="120">
-                <!-- mantém o MESMO nome -->
                 <Image x:Name="Photo" Aspect="AspectFill">
                     <Image.Clip>
                         <EllipseGeometry Center="60,60" RadiusX="60" RadiusY="60"/>
                     </Image.Clip>
                     <Image.GestureRecognizers>
-                        <TapGestureRecognizer NumberOfTapsRequired="1" Tapped="OnChangePhoto"/>
+                        <!-- Troca para abrir a tela de troca de foto -->
+                        <TapGestureRecognizer NumberOfTapsRequired="1" Tapped="OpenChangePhotoInApp"/>
                     </Image.GestureRecognizers>
                 </Image>
 
-                <!-- badge de câmera (sibling, não conteúdo do Border) -->
                 <Border StrokeShape="RoundRectangle 16"
-                BackgroundColor="#66000000"
-                HorizontalOptions="End" VerticalOptions="End"
-                Padding="4" Margin="4">
+                        BackgroundColor="#66000000"
+                        HorizontalOptions="End" VerticalOptions="End"
+                        Padding="4" Margin="4">
                     <Label Text="📷" FontSize="12" TextColor="White"/>
                 </Border>
             </Grid>
 
             <Label Text="Tap the photo to change"
-             FontSize="12" Opacity="0.6" HorizontalTextAlignment="Center"/>
+                   FontSize="12" Opacity="0.6" HorizontalTextAlignment="Center"/>
 
-            <!-- mantém MESMOS nomes -->
             <Entry x:Name="FullName" Placeholder="Full name"/>
             <Entry x:Name="PhotoUrl" Placeholder="Photo URL" IsVisible="False"/>
 
-
             <Button Text="Save" Clicked="OnSave" />
+
+            <!-- (opcional) botão explícito -->
+            <!--<Button Text="Change photo (in-app)" Clicked="OpenChangePhotoInApp" />-->
 
             <Frame Padding="12" HasShadow="True">
                 <VerticalStackLayout Spacing="4">
