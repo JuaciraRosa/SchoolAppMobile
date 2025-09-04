@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage
+    x:Class="AppSchoolMaui.Pages.StatusPage"
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    Title="Status">
+
+    <VerticalStackLayout Padding="16" Spacing="10">
+        <CollectionView ItemsSource="{Binding Items}">
+            <CollectionView.ItemTemplate>
+                <DataTemplate>
+                    <Frame Padding="10" Margin="0,6" HasShadow="True">
+                        <Grid ColumnDefinitions="*,Auto"
+                              RowDefinitions="Auto,Auto,Auto"
+                              ColumnSpacing="12"
+                              RowSpacing="4">
+
+                           
+                            <Label Text="{Binding Subject}" 
+                                   FontAttributes="Bold" 
+                                   Grid.Row="0" Grid.Column="0"/>
+                            <Label Text="{Binding Status}" 
+                                   FontAttributes="Bold"
+                                   HorizontalTextAlignment="End"
+                                   Grid.Row="0" Grid.Column="1"/>
+
+                         
+                            <Label Text="{Binding Average, StringFormat='Avg: {0:F2}'}"
+                                   Grid.Row="1" Grid.Column="0"/>
+                            <Label Text="{Binding PassThreshold, StringFormat='Pass: {0:F2}'}"
+                                   HorizontalTextAlignment="End"
+                                   Grid.Row="1" Grid.Column="1"/>
+
+                            <Label Text="{Binding Absences, StringFormat='Absences: {0}'}"
+                                   Grid.Row="2" Grid.Column="0"/>
+                            <Label Text="{Binding MaxAbsences, StringFormat='Max: {0}'}"
+                                   HorizontalTextAlignment="End"
+                                   Grid.Row="2" Grid.Column="1"/>
+
+                        </Grid>
+                    </Frame>
+                </DataTemplate>
+            </CollectionView.ItemTemplate>
+        </CollectionView>
+    </VerticalStackLayout>
+</ContentPage>

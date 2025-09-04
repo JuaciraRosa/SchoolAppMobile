@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<Shell
+    x:Class="AppSchoolMaui.AppShell"
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    xmlns:pages="clr-namespace:AppSchoolMaui.Pages">
+
+
+    <!-- Tela de login (rota global //login) -->
+    <ShellContent Route="login"
+                  ContentTemplate="{DataTemplate pages:LoginPage}" />
+
+    <!-- Área autenticada (rota global //app) -->
+    <TabBar Route="app">
+        <ShellContent Title="Home"     ContentTemplate="{DataTemplate pages:HomePage}" />
+        <ShellContent Title="Marks"    ContentTemplate="{DataTemplate pages:MarksPage}" />
+        <ShellContent Title="Absences" ContentTemplate="{DataTemplate pages:AbsencesPage}" />
+        <ShellContent Title="Status"   ContentTemplate="{DataTemplate pages:StatusPage}" />
+        <ShellContent Title="Public"   ContentTemplate="{DataTemplate pages:PublicPage}" />
+        <ShellContent Title="Profile"  ContentTemplate="{DataTemplate pages:ProfilePage}" />
+    </TabBar>
+</Shell>

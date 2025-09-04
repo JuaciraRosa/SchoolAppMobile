@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="AppSchoolMaui.Pages.HomePage"
+             Title="HomePage">
+
+    <ContentPage.ToolbarItems>
+        <ToolbarItem Text="Logout" Clicked="OnLogout"/>
+    </ContentPage.ToolbarItems>
+    
+    <VerticalStackLayout Padding="16" Spacing="10">
+        <Label x:Name="Hello" FontSize="18"/>
+        <Button Text="Refresh" Clicked="OnRefresh"/>
+        <CollectionView x:Name="List">
+            <CollectionView.ItemTemplate>
+                <DataTemplate>
+                    <Frame Padding="10" Margin="0,6" HasShadow="True">
+                        <VerticalStackLayout>
+                            <Label Text="{Binding Type}" FontAttributes="Bold"/>
+                            <Label Text="{Binding Subject}" />
+                            <Label Text="{Binding Date}" />
+                            <Label Text="{Binding Value}" />
+                        </VerticalStackLayout>
+                    </Frame>
+                </DataTemplate>
+            </CollectionView.ItemTemplate>
+        </CollectionView>
+    </VerticalStackLayout>
+</ContentPage>
