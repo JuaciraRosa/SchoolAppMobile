@@ -9,5 +9,7 @@ namespace AppSchoolMaui.Services
     public interface IAppNotifications
     {
         Task ShowAsync(string title, string message);
+        Task RequestPermissionsAsync();     // pedir permissões (Android 13+/iOS)
+       
     }
 }

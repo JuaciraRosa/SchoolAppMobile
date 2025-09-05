@@ -1,4 +1,5 @@
-﻿using AppSchoolMaui.Services;
+﻿using AppSchoolMaui.Pages;
+using AppSchoolMaui.Services;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -17,7 +18,13 @@ namespace AppSchoolMaui.ViewModels
             _api = api; _notify = notify;
             SaveCommand = new Command(async () => await SaveAsync(), () => !IsBusy);
             PickPhotoCommand = new Command(async () => await PickAsync(), () => !IsBusy);
+            ChangePasswordCommand = new Command(async () => await _api.ChangePasswordOnWebAsync());
+            OpenEnrollmentRequestsCommand = new Command(async () =>
+                await Shell.Current.GoToAsync(nameof(EnrollmentRequestsPage)));
+
         }
+        public Command ChangePasswordCommand { get; }
+        public Command OpenEnrollmentRequestsCommand { get; }
 
         public Command SaveCommand { get; }
         public Command PickPhotoCommand { get; }

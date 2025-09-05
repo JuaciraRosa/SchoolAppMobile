@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage x:Class="AppSchoolMaui.Pages.EnrollmentRequestsPage"
+             xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:vm="clr-namespace:AppSchoolMaui.ViewModels"
+             x:DataType="vm:EnrollmentRequestsVm"
+             Title="Enrollment Requests">
+
+    <ScrollView>
+        <VerticalStackLayout Padding="16" Spacing="16">
+
+            <!-- 🔔 Banner de modo simulado -->
+            <Frame IsVisible="{Binding IsSimulated}"
+                   BackgroundColor="#FFFBEA"
+                   BorderColor="#F6C343"
+                   Padding="12" CornerRadius="10">
+                <Label Text="Simulado: pedidos guardados apenas neste dispositivo."
+                       TextColor="#7A5B00"/>
+            </Frame>
+
+            <!-- Novo pedido -->
+            <Frame Padding="12" CornerRadius="12" HasShadow="True">
+                <VerticalStackLayout Spacing="10">
+                    <Label Text="Request enrollment in a subject" FontAttributes="Bold" />
+                    <Picker Title="Choose a subject"
+                            ItemsSource="{Binding Subjects}"
+                            ItemDisplayBinding="{Binding Name}"
+                            SelectedItem="{Binding Selected}" />
+                    <Editor Placeholder="Optional note" HeightRequest="80"
+                            Text="{Binding Note}" />
+                    <Button Text="Send request"
+                            Command="{Binding SendCommand}" />
+                </VerticalStackLayout>
+            </Frame>
+
+            <!-- Pedidos existentes -->
+            <Frame Padding="0" CornerRadius="12" HasShadow="True">
+                <VerticalStackLayout>
+                    <Grid Padding="16,12" RowDefinitions="Auto,Auto">
+                        <Label Text="My Requests" FontSize="18" FontAttributes="Bold"/>
+                        <Label Grid.Row="1" Text="Status and dates" Opacity="0.7"/>
+                    </Grid>
+
+                    <CollectionView ItemsSource="{Binding Requests}">
+                        <CollectionView.ItemTemplate>
+                            <DataTemplate x:DataType="{x:Null}">
+                                <Grid Padding="16,10" ColumnDefinitions="2*,Auto,Auto">
+                                    <Label Text="{Binding Subject}" />
+                                    <Label Grid.Column="1" Text="{Binding Status}" />
+                                    <Label Grid.Column="2" Text="{Binding CreatedAt, StringFormat='{0:dd/MM/yyyy}'}" />
+                                </Grid>
+                            </DataTemplate>
+                        </CollectionView.ItemTemplate>
+                    </CollectionView>
+                </VerticalStackLayout>
+            </Frame>
+
+        </VerticalStackLayout>
+    </ScrollView>
+</ContentPage>

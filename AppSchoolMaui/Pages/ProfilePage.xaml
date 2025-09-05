@@ -24,13 +24,24 @@
             <Entry Placeholder="Full name" Text="{Binding FullName}"/>
             <Entry Placeholder="Photo URL" Text="{Binding PhotoUrlRaw}" IsVisible="False"/>
             <Button Text="Save" Command="{Binding SaveCommand}"/>
-
+             
             <Frame Padding="12" HasShadow="True">
                 <VerticalStackLayout Spacing="4">
                     <Label Text="{Binding Email}"/>
                     <Label Text="{Binding Role}"/>
                 </VerticalStackLayout>
             </Frame>
+            <Button Text="Enrollment requests"
+        Margin="0,8,0,0"
+        Command="{Binding OpenEnrollmentRequestsCommand}" />
+
+            <Button Text="Change password (website)"
+        Margin="0,4,0,0"
+        Command="{Binding ChangePasswordCommand}" />
+
+
+
+
         </VerticalStackLayout>
     </ScrollView>
 </ContentPage>

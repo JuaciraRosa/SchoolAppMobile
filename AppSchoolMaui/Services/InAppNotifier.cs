@@ -11,6 +11,7 @@ namespace AppSchoolMaui.Services
     /// </summary>
     public sealed class InAppNotifier : IAppNotifications
     {
+        public Task RequestPermissionsAsync() => Task.CompletedTask; // nada a pedir
         public Task ShowAsync(string title, string message)
         {
             // Garante que roda na UI thread
@@ -21,5 +22,9 @@ namespace AppSchoolMaui.Services
                     await page.DisplayAlert(title ?? "Aviso", message ?? string.Empty, "OK");
             });
         }
+
+     
+
+
     }
 }

@@ -23,9 +23,13 @@ namespace AppSchoolMaui.ViewModels
             Hello = "Hello, guest";
             Items = new();
 
+            // se não há token OU está em modo convidado, não chama endpoints protegidos
+            var isGuest = Preferences.Get("guest", false) || !_api.HasAuth;
+            if (isGuest) return;
+
             try
             {
-                var me = await _api.GetProfileAsync(); // protegido
+                var me = await _api.GetProfileAsync();           // protegido
                 Hello = $"Hello, {me.FullName}";
 
                 var feed = await _api.GetFeedAsync(DateTime.UtcNow.AddDays(-30)); // protegido
@@ -33,8 +37,11 @@ namespace AppSchoolMaui.ViewModels
             }
             catch (HttpRequestException ex) when (ex.StatusCode == HttpStatusCode.Unauthorized)
             {
-                // permanece como convidado
+                // token inválido/expirado → regressa a guest silenciosamente
+                await _api.LogoutAsync();
+                Preferences.Set("guest", true);
             }
         }
+
     }
 }

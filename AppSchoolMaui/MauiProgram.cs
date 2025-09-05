@@ -16,7 +16,7 @@ namespace AppSchoolMaui
 
             builder.UseMauiApp<App>();
 
-            // DI
+            // DI (o teu bloco atual)
             builder.Services.AddSingleton<ApiService>();
             builder.Services.AddSingleton<IAppNotifications, InAppNotifier>();
 
@@ -36,20 +36,24 @@ namespace AppSchoolMaui
             builder.Services.AddSingleton<AbsencesVm>();
             builder.Services.AddSingleton<StatusVm>();
             builder.Services.AddSingleton<AppShell>();
-           
-
+            builder.Services.AddSingleton<EnrollmentRequestsVm>();
+            builder.Services.AddSingleton<EnrollmentRequestsPage>();
 
 #if DEBUG
             builder.Logging.AddDebug();
 #endif
 
 #if IOS
-            // zera o badge do ícone ao iniciar no iOS
 #pragma warning disable CA1422
-            UIKit.UIApplication.SharedApplication.ApplicationIconBadgeNumber = 0;
+    UIKit.UIApplication.SharedApplication.ApplicationIconBadgeNumber = 0;
 #pragma warning restore CA1422
 #endif
-            return builder.Build();
+
+            // ⬇️ AQUI: inicializa o ServiceHelper e só depois retorna
+            var app = builder.Build();
+            ServiceHelper.Initialize(app.Services);
+            return app;
         }
+
     }
 }

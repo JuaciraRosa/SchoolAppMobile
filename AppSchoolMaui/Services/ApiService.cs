@@ -13,11 +13,10 @@ namespace AppSchoolMaui.Services
     public sealed class ApiService
     {
         // ==== Config ====
-        // Ajuste aqui para os seus domínios
         public string BaseUrl { get; } = "https://escolainfosysapi.somee.com"; // API
-        public string WebBase { get; } = "https://escolainfosys.somee.com";    // MVC (site)
+        public string WebBase { get; } = "https://www.escolainfosys.somee.com"; // MVC (site)
 
-        private readonly HttpClient _http = new();
+        private readonly HttpClient _http;
         private readonly JsonSerializerOptions _json = new()
         {
             PropertyNameCaseInsensitive = true,
@@ -27,10 +26,19 @@ namespace AppSchoolMaui.Services
 
         public ApiService()
         {
-            _http.Timeout = TimeSpan.FromSeconds(30);
-            _http.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
+            // Handler com descompressão p/ respostas gzip/deflate
+            var handler = new HttpClientHandler
+            {
+                AutomaticDecompression = System.Net.DecompressionMethods.GZip | System.Net.DecompressionMethods.Deflate
+            };
 
-           
+            _http = new HttpClient(handler)
+            {
+                Timeout = TimeSpan.FromSeconds(30)
+            };
+            _http.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
+            // Ajuda servidores/Firewalls chatos a identificar o cliente
+            _http.DefaultRequestHeaders.UserAgent.ParseAdd("EscolaInfoSys.Maui/1.0");
         }
 
         public async Task BootstrapAuthAsync()
@@ -48,12 +56,33 @@ namespace AppSchoolMaui.Services
         private static StringContent Body(object obj) =>
             new StringContent(JsonSerializer.Serialize(obj), Encoding.UTF8, "application/json");
 
+        // ---- leitura mais robusta, com mensagem de erro do servidor ----
         private async Task<T> Read<T>(HttpResponseMessage resp)
         {
             var url = resp.RequestMessage?.RequestUri?.ToString() ?? "?";
             var txt = await resp.Content.ReadAsStringAsync();
+
             if (!resp.IsSuccessStatusCode)
-                throw new HttpRequestException($"{(int)resp.StatusCode} {resp.ReasonPhrase} at {url}\n{txt}");
+            {
+                string? serverMsg = null;
+                try
+                {
+                    using var doc = JsonDocument.Parse(string.IsNullOrWhiteSpace(txt) ? "{}" : txt);
+                    if (doc.RootElement.TryGetProperty("message", out var m)) serverMsg = m.GetString();
+                    else if (doc.RootElement.TryGetProperty("error", out var e)) serverMsg = e.GetString();
+                    else if (doc.RootElement.TryGetProperty("title", out var t)) serverMsg = t.GetString();
+                }
+                catch { /* ignore parse errors */ }
+
+                var reason = $"{(int)resp.StatusCode} {resp.ReasonPhrase}";
+                if (!string.IsNullOrWhiteSpace(serverMsg)) reason += $" - {serverMsg}";
+
+                throw new HttpRequestException($"{reason} at {url}\n{txt}");
+            }
+
+            // quando o endpoint não tem corpo (ex.: 204), devolve default(T)
+            if (typeof(T) == typeof(object) || string.IsNullOrWhiteSpace(txt))
+                return default!;
 
             return JsonSerializer.Deserialize<T>(txt, _json)!;
         }
@@ -63,9 +92,18 @@ namespace AppSchoolMaui.Services
         public record LoginReq(string Email, string Password);
         public record LoginResp(string Token, DateTime ExpiresAtUtc);
 
-        public async Task LoginAsync(string email, string password)
+        public async Task LoginAsync(string email, string password, CancellationToken ct = default)
         {
-            var resp = await _http.PostAsync($"{BaseUrl}/api/auth/login", Body(new LoginReq(email, password)));
+            // normaliza e valida antes de enviar
+            email = (email ?? string.Empty).Trim().ToLowerInvariant();
+            password = password ?? string.Empty;
+
+            if (string.IsNullOrWhiteSpace(email) || string.IsNullOrEmpty(password))
+                throw new HttpRequestException("Email e password são obrigatórios.");
+
+            using var resp = await _http.PostAsync($"{BaseUrl}/api/auth/login",
+                Body(new LoginReq(email, password)), ct);
+
             var data = await Read<LoginResp>(resp);
 
             await SecureStorage.SetAsync("token", data.Token);
@@ -83,13 +121,14 @@ namespace AppSchoolMaui.Services
         public record ForgotPasswordReq(string Email);
         public record ForgotPasswordResp(string? link);
 
-        public async Task ForgotAsync(string email)
+        public async Task ForgotAsync(string email, CancellationToken ct = default)
         {
-            var resp = await _http.PostAsync($"{BaseUrl}/api/auth/forgot-password", Body(new ForgotPasswordReq(email)));
-            // ok sem corpo? não tem problema; se tiver 'link', abrimos
+            using var resp = await _http.PostAsync($"{BaseUrl}/api/auth/forgot-password",
+                Body(new ForgotPasswordReq((email ?? "").Trim())), ct);
+
             if (resp.IsSuccessStatusCode)
             {
-                var txt = await resp.Content.ReadAsStringAsync();
+                var txt = await resp.Content.ReadAsStringAsync(ct);
                 if (!string.IsNullOrWhiteSpace(txt))
                 {
                     var data = JsonSerializer.Deserialize<ForgotPasswordResp>(txt, _json);
@@ -99,39 +138,61 @@ namespace AppSchoolMaui.Services
             }
             else
             {
-                // Deixa a exceção detalhada se houver erro real
-                await Read<object>(resp);
+                await Read<object>(resp); // lança exceção detalhada
             }
         }
 
-        // Só abre a página do site (sem usar a API)
+        // ApiService.cs
         public Task ForgotOnWebAsync(string? email = null)
         {
             var url = string.IsNullOrWhiteSpace(email)
                 ? $"{WebBase}/Account/ForgotPassword"
-                : $"{WebBase}/Account/ForgotPassword?email={Uri.EscapeDataString(email)}";
-
-            return Browser.OpenAsync(new Uri(url), BrowserLaunchMode.External);
+                : $"{WebBase}/Account/ForgotPassword?email={Uri.EscapeDataString(email.Trim())}";
+            return OpenUrlSafeAsync(url);
         }
+
+        private static async Task OpenUrlSafeAsync(string url)
+        {
+            try { await Browser.OpenAsync(new Uri(url), BrowserLaunchMode.External); }
+            catch (Microsoft.Maui.ApplicationModel.FeatureNotSupportedException)
+            { await Launcher.OpenAsync(url); }
+#if WINDOWS
+            catch
+            {
+                try { System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(url) { UseShellExecute = true }); }
+                catch { }
+            }
+#endif
+        }
+        public bool HasAuth =>
+       _http.DefaultRequestHeaders.Authorization is { Parameter.Length: > 0 };
+
+        // ApiService.cs
+        public Task ChangePasswordOnWebAsync()
+       => OpenUrlSafeAsync("https://www.escolainfosys.somee.com/Account/ChangePassword");
+
+
 
         // ========= Profile =========
 
         public record MeDto(string Email, string FullName, string Role, string? ProfilePhoto);
 
-        public async Task<MeDto> GetProfileAsync()
+        public async Task<MeDto> GetProfileAsync(CancellationToken ct = default)
         {
-            var resp = await _http.GetAsync($"{BaseUrl}/api/students/profile");
+            using var resp = await _http.GetAsync($"{BaseUrl}/api/students/profile", ct);
             return await Read<MeDto>(resp);
         }
 
         // Atualiza nome e/ou URL da foto
         public record UpdateProfileReq(string? FullName, string? ProfilePhoto);
 
-        public async Task<MeDto> UpdateProfileAsync(string? fullName, string? profilePhoto)
+        public async Task<MeDto> UpdateProfileAsync(string? fullName, string? profilePhoto, CancellationToken ct = default)
         {
-            var resp = await _http.PutAsync($"{BaseUrl}/api/students/profile", Body(new UpdateProfileReq(fullName, profilePhoto)));
+            using var resp = await _http.PutAsync($"{BaseUrl}/api/students/profile",
+                Body(new UpdateProfileReq(fullName, profilePhoto)), ct);
+
             if (resp.StatusCode == HttpStatusCode.NoContent)
-                return await GetProfileAsync();
+                return await GetProfileAsync(ct);
 
             return await Read<MeDto>(resp);
         }
@@ -139,14 +200,14 @@ namespace AppSchoolMaui.Services
         // Upload foto
         public record UploadPhotoResp(string path, string url);
 
-        public async Task<UploadPhotoResp> UploadStudentProfilePhotoAsync(byte[] bytes, string fileName)
+        public async Task<UploadPhotoResp> UploadStudentProfilePhotoAsync(byte[] bytes, string fileName, CancellationToken ct = default)
         {
             using var form = new MultipartFormDataContent();
             var file = new ByteArrayContent(bytes);
             file.Headers.ContentType = new MediaTypeHeaderValue(GetMime(fileName));
             form.Add(file, "file", fileName);
 
-            var resp = await _http.PostAsync($"{BaseUrl}/api/students/profile/photo", form);
+            using var resp = await _http.PostAsync($"{BaseUrl}/api/students/profile/photo", form, ct);
             return await Read<UploadPhotoResp>(resp);
         }
 
@@ -159,7 +220,6 @@ namespace AppSchoolMaui.Services
             if (Uri.TryCreate(pathOrUrl, UriKind.Absolute, out var abs))
                 return Task.FromResult<Uri?>(abs);
 
-            // se só veio o nome do arquivo, API serve em /uploads/{fname}
             var rel = pathOrUrl.TrimStart('/');
             var url = $"{BaseUrl}/uploads/{rel}";
             return Task.FromResult<Uri?>(new Uri(url));
@@ -183,16 +243,17 @@ namespace AppSchoolMaui.Services
         public record CourseDto(int Id, string Name);
         public record SubjectDto(int Id, string Name, int CourseId, int TotalLessons);
 
-        public async Task<List<CourseDto>> GetPublicCoursesAsync()
+        public async Task<List<CourseDto>> GetPublicCoursesAsync(CancellationToken ct = default)
         {
-            var resp = await _http.GetAsync($"{BaseUrl}/api/public/courses");
+            using var resp = await _http.GetAsync($"{BaseUrl}/api/public/courses", ct);
             return await Read<List<CourseDto>>(resp);
         }
-        public async Task<List<SubjectDto>> GetPublicSubjectsAsync(int? courseId = null)
+
+        public async Task<List<SubjectDto>> GetPublicSubjectsAsync(int? courseId = null, CancellationToken ct = default)
         {
             var url = $"{BaseUrl}/api/public/subjects";
             if (courseId is not null) url += $"?courseId={courseId.Value}";
-            var resp = await _http.GetAsync(url);
+            using var resp = await _http.GetAsync(url, ct);
             return await Read<List<SubjectDto>>(resp);
         }
 
@@ -201,17 +262,17 @@ namespace AppSchoolMaui.Services
         public record MarkDto(int Id, int SubjectId, string Subject, string EvaluationType,
                               float Value, bool? IsPassed, DateTime Date);
 
-        public async Task<List<MarkDto>> GetMarksAsync(int? subjectId = null)
+        public async Task<List<MarkDto>> GetMarksAsync(int? subjectId = null, CancellationToken ct = default)
         {
             var url = $"{BaseUrl}/api/marks";
             if (subjectId is not null) url += $"?subjectId={subjectId.Value}";
-            var resp = await _http.GetAsync(url);
+            using var resp = await _http.GetAsync(url, ct);
             return await Read<List<MarkDto>>(resp);
         }
 
-        public async Task<Dictionary<int, double>> GetMyAveragesAsync()
+        public async Task<Dictionary<int, double>> GetMyAveragesAsync(CancellationToken ct = default)
         {
-            var resp = await _http.GetAsync($"{BaseUrl}/api/marks/averages");
+            using var resp = await _http.GetAsync($"{BaseUrl}/api/marks/averages", ct);
             return await Read<Dictionary<int, double>>(resp);
         }
 
@@ -224,9 +285,9 @@ namespace AppSchoolMaui.Services
         public record AbsenceResponse(List<AbsenceItemDto> items, AbsenceSummary summary);
         public record AbsenceSummary(List<AbsencePerSubjectDto> perSubject, AbsenceOverallDto overall);
 
-        public async Task<AbsenceResponse> GetAbsencesAsync()
+        public async Task<AbsenceResponse> GetAbsencesAsync(CancellationToken ct = default)
         {
-            var resp = await _http.GetAsync($"{BaseUrl}/api/absences");
+            using var resp = await _http.GetAsync($"{BaseUrl}/api/absences", ct);
             return await Read<AbsenceResponse>(resp);
         }
 
@@ -235,9 +296,9 @@ namespace AppSchoolMaui.Services
         public record StatusDto(int SubjectId, string Subject, double? Average, double? PassThreshold,
                                 int Absences, int MaxAbsences, bool ExceededAbsences, string Status);
 
-        public async Task<List<StatusDto>> GetStatusAsync()
+        public async Task<List<StatusDto>> GetStatusAsync(CancellationToken ct = default)
         {
-            var resp = await _http.GetAsync($"{BaseUrl}/api/status/per-subject");
+            using var resp = await _http.GetAsync($"{BaseUrl}/api/status/per-subject", ct);
             return await Read<List<StatusDto>>(resp);
         }
 
@@ -247,13 +308,13 @@ namespace AppSchoolMaui.Services
                                DateTime Date, float? Value, string? EvaluationType, bool? IsPassed);
         public record FeedResponse(DateTime since, int count, List<FeedItem> items);
 
-        public async Task<FeedResponse> GetFeedAsync(DateTime? sinceUtc = null)
+        public async Task<FeedResponse> GetFeedAsync(DateTime? sinceUtc = null, CancellationToken ct = default)
         {
             var url = $"{BaseUrl}/api/feed";
             if (sinceUtc is not null)
                 url += $"?since={Uri.EscapeDataString(sinceUtc.Value.ToUniversalTime().ToString("o"))}";
 
-            var resp = await _http.GetAsync(url);
+            using var resp = await _http.GetAsync(url, ct);
             return await Read<FeedResponse>(resp);
         }
 
@@ -292,25 +353,31 @@ namespace AppSchoolMaui.Services
             _lastSince = null;
         }
 
+ 
         // ========= Enrollment Requests =========
-
         public record EnrollmentRequestDto(int Id, int StudentId, int SubjectId, string? Subject,
                                            string? Status, DateTime? CreatedAt);
         public record CreateEnrollmentReq(int SubjectId, string? Note);
 
-        public async Task<List<EnrollmentRequestDto>> GetMyEnrollmentRequestsAsync()
+        public async Task<List<EnrollmentRequestDto>> GetMyEnrollmentRequestsAsync(CancellationToken ct = default)
         {
-            var resp = await _http.GetAsync($"{BaseUrl}/api/enrollment-requests/my");
+            using var resp = await _http.GetAsync($"{BaseUrl}/api/EnrollmentRequests/my", ct);
             return await Read<List<EnrollmentRequestDto>>(resp);
         }
 
-        public async Task CreateEnrollmentRequestAsync(int subjectId, string? note)
+        public async Task CreateEnrollmentRequestAsync(int subjectId, string? note, CancellationToken ct = default)
         {
-            var resp = await _http.PostAsync($"{BaseUrl}/api/enrollment-requests",
-                Body(new CreateEnrollmentReq(subjectId, note)));
-            await Read<object>(resp); // valida erro se houver; Created 201 não tem corpo
+            using var resp = await _http.PostAsync(
+                $"{BaseUrl}/api/EnrollmentRequests",
+                Body(new CreateEnrollmentReq(subjectId, note)),
+                ct);
+            await Read<object>(resp); // valida/lança erro se houver
         }
 
-     
+
+
+
+
     }
+
 }

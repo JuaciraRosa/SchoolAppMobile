@@ -16,7 +16,7 @@
         <ShellContent Title="Marks"    ContentTemplate="{DataTemplate pages:MarksPage}" />
         <ShellContent Title="Absences" ContentTemplate="{DataTemplate pages:AbsencesPage}" />
         <ShellContent Title="Status"   ContentTemplate="{DataTemplate pages:StatusPage}" />
-        <ShellContent Title="Public"   ContentTemplate="{DataTemplate pages:PublicPage}" />
+        <ShellContent Route="public" Title="Public" ContentTemplate="{DataTemplate pages:PublicPage}" />
         <ShellContent Title="Profile"  ContentTemplate="{DataTemplate pages:ProfilePage}" />
     </TabBar>
 </Shell>

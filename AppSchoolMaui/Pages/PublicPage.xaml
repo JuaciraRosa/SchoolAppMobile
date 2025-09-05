@@ -1,22 +1,90 @@
 <?xml version="1.0" encoding="utf-8" ?>
-<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
-             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
-             x:Class="AppSchoolMaui.Pages.PublicPage"
-             Title="Public">
+<ContentPage
+    x:Class="AppSchoolMaui.Pages.PublicPage"
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    xmlns:vm="clr-namespace:AppSchoolMaui.ViewModels"
+    x:DataType="vm:PublicVm"
+    Title="Public">
 
-    <VerticalStackLayout Padding="16" Spacing="10">
-        <CollectionView ItemsSource="{Binding Items}">
-            <CollectionView.ItemTemplate>
-                <DataTemplate>
-                    <Frame Padding="10" Margin="0,6" HasShadow="True">
-                        <VerticalStackLayout>
-                            <Label Text="{Binding Name}" FontAttributes="Bold"/>
-                            <Label Text="{Binding CourseName}" />
-                            <Label Text="{Binding TotalLessons, StringFormat='Lessons: {0}'}" />
-                        </VerticalStackLayout>
-                    </Frame>
-                </DataTemplate>
-            </CollectionView.ItemTemplate>
-        </CollectionView>
-    </VerticalStackLayout>
+    <ScrollView>
+        <VerticalStackLayout Padding="16" Spacing="16">
+
+            <!-- “Browse Information” -->
+            <Frame Padding="12" HasShadow="True" CornerRadius="12">
+                <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="8">
+                    <Label Text="Browse Information"
+                           FontAttributes="Bold" FontSize="16" VerticalOptions="Center"/>
+                    <Button Grid.Column="1" Text="View Courses"
+                            Command="{Binding ShowCoursesCommand}" />
+                    <Button Grid.Column="2" Text="View Subjects"
+                            Command="{Binding ShowSubjectsCommand}" />
+                </Grid>
+            </Frame>
+
+            <!-- SUBJECTS CARD -->
+            <Frame IsVisible="{Binding IsSubjectsMode}"
+                   Padding="0" HasShadow="True" CornerRadius="12">
+                <VerticalStackLayout>
+
+                    <!-- Card header -->
+                    <Grid Padding="16,12" RowDefinitions="Auto,Auto">
+                        <Label Text="Subjects" FontSize="18" FontAttributes="Bold"/>
+                        <Label Grid.Row="1" Text="List of Subjects" Opacity="0.7"/>
+                    </Grid>
+
+                    <!-- Table header -->
+                    <Grid Padding="16,8" ColumnDefinitions="2*,2*" BackgroundColor="{DynamicResource SecondaryColor}">
+                        <Label Text="Name"   FontAttributes="Bold"/>
+                        <Label Grid.Column="1" Text="Course" FontAttributes="Bold"/>
+                    </Grid>
+
+                    <!-- SUBJECTS -->
+                    <CollectionView ItemsSource="{Binding Subjects}">
+                        <CollectionView.ItemTemplate>
+                            <DataTemplate x:DataType="{x:Null}">
+                                <Grid Padding="16,10" ColumnDefinitions="2*,2*">
+                                    <Label Text="{Binding Name}" />
+                                    <Label Grid.Column="1" Text="{Binding CourseName}" />
+                                </Grid>
+                            </DataTemplate>
+                        </CollectionView.ItemTemplate>
+                    </CollectionView>
+
+                </VerticalStackLayout>
+            </Frame>
+
+            <!-- COURSES CARD -->
+            <Frame IsVisible="{Binding IsCoursesMode}"
+                   Padding="0" HasShadow="True" CornerRadius="12">
+                <VerticalStackLayout>
+
+                    <!-- Card header -->
+                    <Grid Padding="16,12" RowDefinitions="Auto,Auto">
+                        <Label Text="Courses" FontSize="18" FontAttributes="Bold"/>
+                        <Label Grid.Row="1" Text="List of Courses" Opacity="0.7"/>
+                    </Grid>
+
+                    <!-- Table header -->
+                    <Grid Padding="16,8" ColumnDefinitions="3*,Auto" BackgroundColor="{DynamicResource SecondaryColor}">
+                        <Label Text="Name"   FontAttributes="Bold"/>
+                        <Label Grid.Column="1" Text="Subjects" FontAttributes="Bold" HorizontalTextAlignment="End"/>
+                    </Grid>
+
+                    <!-- COURSES -->
+                    <CollectionView ItemsSource="{Binding Courses}">
+                        <CollectionView.ItemTemplate>
+                            <DataTemplate x:DataType="{x:Null}">
+                                <Grid Padding="16,10" ColumnDefinitions="3*,Auto">
+                                    <Label Text="{Binding Name}" />
+                                    <Label Grid.Column="1" Text="{Binding SubjectsCount}" HorizontalTextAlignment="End"/>
+                                </Grid>
+                            </DataTemplate>
+                        </CollectionView.ItemTemplate>
+                    </CollectionView>
+                </VerticalStackLayout>
+            </Frame>
+
+        </VerticalStackLayout>
+    </ScrollView>
 </ContentPage>

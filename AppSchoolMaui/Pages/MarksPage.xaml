@@ -7,16 +7,30 @@
     <CollectionView ItemsSource="{Binding Items}">
         <CollectionView.ItemTemplate>
             <DataTemplate>
-                <Frame Padding="10" Margin="0,6">
-                    <Grid ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto">
-                        <Label Text="{Binding Subject}" FontAttributes="Bold" Grid.Row="0" Grid.Column="0"/>
-                        <Label Text="{Binding Value}" Grid.Row="0" Grid.Column="1"/>
-                        <Label Text="{Binding EvaluationType}" Grid.Row="1" Grid.Column="0"/>
-                        <Label Text="{Binding Date}" Grid.Row="1" Grid.Column="1"/>
+                <Frame Margin="12,6" Padding="12" HasShadow="True" CornerRadius="12">
+                    <Grid ColumnDefinitions="*,Auto"
+              RowDefinitions="Auto,Auto">
+                        <!-- Linha 1: disciplina + nota -->
+                        <Label Grid.Row="0" Grid.Column="0"
+                 Text="{Binding Subject}"
+                 FontAttributes="Bold" FontSize="16"
+                 LineBreakMode="TailTruncation" />
+                        <Label Grid.Row="0" Grid.Column="1"
+                 Text="{Binding Value, StringFormat='{0:0.#}'}"
+                 FontAttributes="Bold" FontSize="18"
+                 HorizontalTextAlignment="End" />
+
+                        <!-- Linha 2: tipo + data -->
+                        <Label Grid.Row="1" Grid.Column="0"
+                 Text="{Binding EvaluationType}" Opacity="0.75"/>
+                        <Label Grid.Row="1" Grid.Column="1"
+                 Text="{Binding Date, StringFormat='{0:dd/MM/yyyy}'}"
+                 Opacity="0.75" HorizontalTextAlignment="End"/>
                     </Grid>
                 </Frame>
             </DataTemplate>
         </CollectionView.ItemTemplate>
     </CollectionView>
+
 
 </ContentPage>

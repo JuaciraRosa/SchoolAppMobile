@@ -18,7 +18,6 @@
                         <VerticalStackLayout>
                             <Label Text="{Binding Type}" FontAttributes="Bold"/>
                             <Label Text="{Binding Subject}" />
-                            <Label Text="{Binding Date}" />
                             <Label Text="{Binding Value}" />
                         </VerticalStackLayout>
                     </Frame>

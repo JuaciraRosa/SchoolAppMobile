@@ -6,24 +6,37 @@ namespace AppSchoolMaui
     public partial class AppShell : Shell
     {
         private readonly ApiService _api;
-        bool _navigatedOnce;
+        bool _ran;
 
         public AppShell(ApiService api)
         {
             InitializeComponent();
             _api = api;
 
-            Loaded += async (_, __) =>
+          
+            Loaded += (_, __) => Dispatcher.Dispatch(async () =>
             {
-                if (_navigatedOnce) return;
-                _navigatedOnce = true;
+                if (_ran) return; _ran = true;
 
-                await _api.BootstrapAuthAsync(); 
+                try
+                {
+                    var boot = _api.BootstrapAuthAsync();
+                    await Task.WhenAny(boot, Task.Delay(1500)); 
 
-                var token = await SecureStorage.GetAsync("token");
-                await GoToAsync(string.IsNullOrWhiteSpace(token) ? "//login" : "//app");
-            };
+                    var token = await SecureStorage.GetAsync("token");
+                    await GoToAsync(string.IsNullOrWhiteSpace(token) ? "//login" : "//app");
+                }
+                catch
+                {
+                    await GoToAsync("//login");
+                }
+            });
+
+
+            Routing.RegisterRoute(nameof(EnrollmentRequestsPage), typeof(EnrollmentRequestsPage));
+
         }
     }
+
 
 }

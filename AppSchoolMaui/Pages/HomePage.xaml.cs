@@ -6,36 +6,33 @@ namespace AppSchoolMaui.Pages;
 public partial class HomePage : ContentPage
 {
     readonly HomeVm _vm;
-    readonly ApiService _api;
-    bool _bootstrapped; // evita rodar 2x
+    readonly ApiService _api; 
 
     public HomePage(HomeVm vm, ApiService api)
     {
         InitializeComponent();
         _vm = vm;
         _api = api;
-
-      
     }
 
     protected override async void OnAppearing()
     {
         base.OnAppearing();
-
-        if (!_bootstrapped)
-        {
-            _bootstrapped = true;
-            await _api.BootstrapAuthAsync(); 
-        }
-
-        await Load();
+        await Load(); 
     }
 
     async Task Load()
     {
-        await _vm.LoadAsync();
-        Hello.Text = _vm.Hello;
-        List.ItemsSource = _vm.Items;
+        try
+        {
+            await _vm.LoadAsync();
+            Hello.Text = _vm.Hello;
+            List.ItemsSource = _vm.Items;
+        }
+        catch (Exception ex)
+        {
+            await DisplayAlert("Erro", ex.Message, "OK");
+        }
     }
 
     private async void OnRefresh(object s, EventArgs e) => await Load();
