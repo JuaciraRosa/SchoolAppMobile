@@ -34,6 +34,11 @@ namespace AppSchoolMaui
 
 
             Routing.RegisterRoute(nameof(EnrollmentRequestsPage), typeof(EnrollmentRequestsPage));
+            Routing.RegisterRoute(nameof(AboutPage), typeof(AboutPage));
+            Routing.RegisterRoute(nameof(ChangePasswordPage), typeof(ChangePasswordPage));
+            Routing.RegisterRoute(nameof(ResetPasswordPage), typeof(ResetPasswordPage));
+
+
 
         }
     }

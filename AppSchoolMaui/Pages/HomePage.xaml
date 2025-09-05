@@ -1,8 +1,16 @@
 <?xml version="1.0" encoding="utf-8" ?>
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:conv="clr-namespace:AppSchoolMaui.Converters"
              x:Class="AppSchoolMaui.Pages.HomePage"
              Title="HomePage">
+
+    <ContentPage.Resources>
+        <ResourceDictionary>
+            <conv:FeedTypeToImageConverter x:Key="FeedIcon" />
+        </ResourceDictionary>
+    </ContentPage.Resources>
+
 
     <ContentPage.ToolbarItems>
         <ToolbarItem Text="Logout" Clicked="OnLogout"/>
@@ -11,15 +19,25 @@
     <VerticalStackLayout Padding="16" Spacing="10">
         <Label x:Name="Hello" FontSize="18"/>
         <Button Text="Refresh" Clicked="OnRefresh"/>
+
+
         <CollectionView x:Name="List">
             <CollectionView.ItemTemplate>
                 <DataTemplate>
-                    <Frame Padding="10" Margin="0,6" HasShadow="True">
-                        <VerticalStackLayout>
-                            <Label Text="{Binding Type}" FontAttributes="Bold"/>
-                            <Label Text="{Binding Subject}" />
-                            <Label Text="{Binding Value}" />
-                        </VerticalStackLayout>
+                    
+                    <Frame Padding="12" Margin="0,6" HasShadow="True" CornerRadius="12">
+                        <Grid ColumnDefinitions="Auto,*" RowDefinitions="Auto,Auto" ColumnSpacing="10">
+                           
+                            <Image Grid.RowSpan="2" Grid.Column="0"
+                                   WidthRequest="22" HeightRequest="22"
+                                   Source="{Binding Type, Converter={StaticResource FeedIcon}}"/>
+
+                            <Label Grid.Row="0" Grid.Column="1"
+                                   Text="{Binding Subject}" FontAttributes="Bold"/>
+                            <Label Grid.Row="1" Grid.Column="1"
+                                   Text="{Binding Type}" Opacity="0.7"/>
+                         
+                        </Grid>
                     </Frame>
                 </DataTemplate>
             </CollectionView.ItemTemplate>

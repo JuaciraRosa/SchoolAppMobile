@@ -16,7 +16,7 @@ namespace AppSchoolMaui.ViewModels
 
         public async Task LoadAsync()
         {
-            var resp = await _api.GetAbsencesAsync();   // retorna AbsenceResponse
+            var resp = await _api.GetAbsencesAsync();  
             Items = (resp?.items ?? Enumerable.Empty<ApiService.AbsenceItemDto>())
                     .OrderByDescending(a => a.Date)
                     .ToList();

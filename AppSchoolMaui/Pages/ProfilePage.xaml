@@ -7,7 +7,8 @@
     <ScrollView>
         <VerticalStackLayout Padding="20" Spacing="16">
             <Grid HorizontalOptions="Center" WidthRequest="120" HeightRequest="120">
-                <Image Aspect="AspectFill" Source="{Binding Photo}">
+                <Image Aspect="AspectFill"
+       Source="{Binding Photo}">
                     <Image.Clip>
                         <EllipseGeometry Center="60,60" RadiusX="60" RadiusY="60"/>
                     </Image.Clip>
@@ -15,6 +16,7 @@
                         <TapGestureRecognizer Command="{Binding PickPhotoCommand}"/>
                     </Image.GestureRecognizers>
                 </Image>
+
                 <Border BackgroundColor="#66000000" StrokeShape="RoundRectangle 16"
                 HorizontalOptions="End" VerticalOptions="End" Padding="4" Margin="4">
                     <Label Text="📷" FontSize="12" TextColor="White"/>
@@ -38,6 +40,12 @@
             <Button Text="Change password (website)"
         Margin="0,4,0,0"
         Command="{Binding ChangePasswordCommand}" />
+
+            <Button Text="Change password" Margin="0,4,0,0" Clicked="OnOpenChangePassword"/>
+
+
+            <Button Text="About" Margin="0,4,0,0" Clicked="OnOpenAbout"/>
+
 
 
 

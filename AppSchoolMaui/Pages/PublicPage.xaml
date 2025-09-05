@@ -43,9 +43,11 @@
                     <CollectionView ItemsSource="{Binding Subjects}">
                         <CollectionView.ItemTemplate>
                             <DataTemplate x:DataType="{x:Null}">
-                                <Grid Padding="16,10" ColumnDefinitions="2*,2*">
-                                    <Label Text="{Binding Name}" />
-                                    <Label Grid.Column="1" Text="{Binding CourseName}" />
+                                <!-- +1 coluna para o ícone -->
+                                <Grid Padding="16,10" ColumnDefinitions="Auto,2*,2*" ColumnSpacing="10">
+                                    <Image Source="subject.png" WidthRequest="24" HeightRequest="24" />
+                                    <Label Grid.Column="1" Text="{Binding Name}" />
+                                    <Label Grid.Column="2" Text="{Binding CourseName}" />
                                 </Grid>
                             </DataTemplate>
                         </CollectionView.ItemTemplate>
@@ -75,13 +77,16 @@
                     <CollectionView ItemsSource="{Binding Courses}">
                         <CollectionView.ItemTemplate>
                             <DataTemplate x:DataType="{x:Null}">
-                                <Grid Padding="16,10" ColumnDefinitions="3*,Auto">
-                                    <Label Text="{Binding Name}" />
-                                    <Label Grid.Column="1" Text="{Binding SubjectsCount}" HorizontalTextAlignment="End"/>
+                                <!-- +1 coluna para o ícone -->
+                                <Grid Padding="16,10" ColumnDefinitions="Auto,3*,Auto" ColumnSpacing="10">
+                                    <Image Source="course.png" WidthRequest="24" HeightRequest="24" />
+                                    <Label Grid.Column="1" Text="{Binding Name}" />
+                                    <Label Grid.Column="2" Text="{Binding SubjectsCount}" HorizontalTextAlignment="End"/>
                                 </Grid>
                             </DataTemplate>
                         </CollectionView.ItemTemplate>
                     </CollectionView>
+
                 </VerticalStackLayout>
             </Frame>
 

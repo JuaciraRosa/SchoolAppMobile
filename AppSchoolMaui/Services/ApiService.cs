@@ -7,6 +7,11 @@ using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Threading.Tasks;
+using Microsoft.Maui.Storage; 
+using Microsoft.Maui.ApplicationModel; 
+    
+
+
 
 namespace AppSchoolMaui.Services
 {
@@ -17,12 +22,19 @@ namespace AppSchoolMaui.Services
         public string WebBase { get; } = "https://www.escolainfosys.somee.com"; // MVC (site)
 
         private readonly HttpClient _http;
+
+
+
+
         private readonly JsonSerializerOptions _json = new()
         {
             PropertyNameCaseInsensitive = true,
             ReadCommentHandling = JsonCommentHandling.Skip,
             AllowTrailingCommas = true
         };
+
+
+
 
         public ApiService()
         {
@@ -40,7 +52,7 @@ namespace AppSchoolMaui.Services
             // Ajuda servidores/Firewalls chatos a identificar o cliente
             _http.DefaultRequestHeaders.UserAgent.ParseAdd("EscolaInfoSys.Maui/1.0");
         }
-
+      
         public async Task BootstrapAuthAsync()
         {
             var token = await SecureStorage.GetAsync("token");
@@ -170,6 +182,33 @@ namespace AppSchoolMaui.Services
         // ApiService.cs
         public Task ChangePasswordOnWebAsync()
        => OpenUrlSafeAsync("https://www.escolainfosys.somee.com/Account/ChangePassword");
+
+        // ==== Change password (requer login / Bearer) ====
+        // ==== Change password (requer login / Bearer) ====
+        public record ChangePasswordReq(string CurrentPassword, string NewPassword, string ConfirmPassword);
+
+        public async Task ChangePasswordAsync(string currentPassword, string newPassword, string confirmPassword, CancellationToken ct = default)
+        {
+            using var resp = await _http.PostAsync(
+                $"{BaseUrl}/api/auth/change-password",
+                Body(new ChangePasswordReq(currentPassword, newPassword, confirmPassword)), ct);
+
+            // a API costuma devolver 200 OK sem corpo; se der erro, lança com o detalhe vindo do servidor
+            if (!resp.IsSuccessStatusCode)
+                await Read<object>(resp);
+        }
+        // === Reset password (sem estar autenticado) ===
+        public record ResetPasswordReq(string Email, string Token, string NewPassword, string ConfirmPassword);
+
+        public async Task ResetPasswordAsync(string email, string token, string newPassword, string confirmPassword, CancellationToken ct = default)
+        {
+            using var resp = await _http.PostAsync(
+                $"{BaseUrl}/api/auth/reset-password",
+                Body(new ResetPasswordReq(email, token, newPassword, confirmPassword)), ct);
+
+            if (!resp.IsSuccessStatusCode)
+                await Read<object>(resp); // lança com detalhes do servidor (400 validação, etc.)
+        }
 
 
 
@@ -322,28 +361,92 @@ namespace AppSchoolMaui.Services
         private System.Timers.Timer? _timer;
         private DateTime? _lastSince;
 
-        public void StartFeedPolling(TimeSpan interval, Func<List<FeedItem>, Task> onItems)
+      
+        private readonly HashSet<int> _notifiedIds = new();      // evita alertas repetidos na sessão
+        private const string LastFeedSeenKey = "last_feed_seen_utc"; // chave no Preferences
+        private DateTime _lastSeenUtc = DateTime.MinValue;           // último item visto (UTC)
+        private DateTime _burstUntilUtc;
+
+        public void StartFeedPolling(TimeSpan interval, Func<List<FeedItem>, Task> onItems, TimeSpan? initialBurst = null)
         {
             _timer?.Stop();
             _timer?.Dispose();
-            _lastSince = DateTime.UtcNow.AddDays(-1);
 
-            _timer = new System.Timers.Timer(interval.TotalMilliseconds) { AutoReset = true };
+            // carrega último visto (mantém tua lógica atual)
+            var saved = Preferences.Get(LastFeedSeenKey, string.Empty);
+            if (DateTime.TryParse(saved, null, System.Globalization.DateTimeStyles.RoundtripKind, out var d))
+            {
+                _lastSeenUtc = d.Kind == DateTimeKind.Utc ? d : d.ToUniversalTime();
+                var now = DateTime.UtcNow;
+                if (_lastSeenUtc > now) _lastSeenUtc = now; // clamp se relógio mudou
+            }
+            else
+            {
+                _lastSeenUtc = DateTime.MinValue;
+            }
+
+            // since inicial
+            _lastSince = _lastSeenUtc == DateTime.MinValue
+                ? DateTime.UtcNow.AddDays(-7)
+                : _lastSeenUtc.AddSeconds(-1);
+
+            // burst: 2s por 30s (ou o valor que passar)
+            var burst = initialBurst ?? TimeSpan.FromSeconds(30);
+            _burstUntilUtc = DateTime.UtcNow + burst;
+
+            _timer = new System.Timers.Timer
+            {
+                AutoReset = true,
+                Interval = burst > TimeSpan.Zero ? 2000 : interval.TotalMilliseconds
+            };
+
             _timer.Elapsed += async (_, __) =>
             {
-                try
-                {
-                    var data = await GetFeedAsync(_lastSince);
-                    if (data.items.Count > 0)
-                    {
-                        _lastSince = data.items.Max(i => i.Date).ToUniversalTime();
-                        await onItems(data.items);
-                    }
-                }
-                catch { /* silencia polling */ }
+                // quando acabar o burst, volta pro intervalo normal
+                if (DateTime.UtcNow > _burstUntilUtc && Math.Abs(_timer.Interval - interval.TotalMilliseconds) > 0.1)
+                    _timer.Interval = interval.TotalMilliseconds;
+
+                await FeedTickAsync(onItems);
             };
+
             _timer.Start();
+
+            // >>> leading-edge: dispara já, sem esperar o primeiro intervalo
+            _ = FeedTickAsync(onItems);
         }
+
+        private async Task FeedTickAsync(Func<List<FeedItem>, Task> onItems)
+        {
+            try
+            {
+                var data = await GetFeedAsync(_lastSince);
+
+                var fresh = data.items
+                    .Where(i => i.Date.ToUniversalTime() > _lastSeenUtc && _notifiedIds.Add(i.Id))
+                    .OrderBy(i => i.Date)
+                    .ToList();
+
+                if (fresh.Count > 0)
+                {
+                    await onItems(fresh);
+
+                    _lastSeenUtc = fresh.Max(i => i.Date.ToUniversalTime());
+                    Preferences.Set(LastFeedSeenKey, _lastSeenUtc.ToString("o"));
+
+                    // “since” levemente antes para não perder a borda inclusiva
+                    _lastSince = _lastSeenUtc.AddSeconds(-1);
+                }
+            }
+            catch
+            {
+                // silencia erros de polling
+            }
+        }
+
+        public Task ForceFeedCheckAsync(Func<List<FeedItem>, Task> onItems)
+    => FeedTickAsync(onItems);
+
+
 
         public void StopFeedPolling()
         {
@@ -351,9 +454,19 @@ namespace AppSchoolMaui.Services
             _timer?.Dispose();
             _timer = null;
             _lastSince = null;
+            _notifiedIds.Clear(); /*  lembra o último visto*/
         }
 
- 
+        public void ResetFeedSeen()
+        {
+            Preferences.Remove(LastFeedSeenKey);
+            _lastSeenUtc = DateTime.MinValue;
+            _notifiedIds.Clear();
+        }
+
+
+
+
         // ========= Enrollment Requests =========
         public record EnrollmentRequestDto(int Id, int StudentId, int SubjectId, string? Subject,
                                            string? Status, DateTime? CreatedAt);

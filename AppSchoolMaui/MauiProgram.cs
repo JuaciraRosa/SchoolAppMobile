@@ -1,6 +1,7 @@
 ﻿using AppSchoolMaui.Pages;
 using AppSchoolMaui.Services;
 using AppSchoolMaui.ViewModels;
+using AppSchoolMaui.ViewModels.AppSchoolMaui.ViewModels;
 using Microsoft.Extensions.Logging;
 
 
@@ -38,6 +39,15 @@ namespace AppSchoolMaui
             builder.Services.AddSingleton<AppShell>();
             builder.Services.AddSingleton<EnrollmentRequestsVm>();
             builder.Services.AddSingleton<EnrollmentRequestsPage>();
+            builder.Services.AddSingleton<AboutVm>();
+            builder.Services.AddSingleton<AboutPage>();
+            builder.Services.AddSingleton<ChangePasswordVm>();
+            builder.Services.AddSingleton<ChangePasswordPage>();
+            builder.Services.AddSingleton<ResetPasswordVm>();
+            builder.Services.AddSingleton<ResetPasswordPage>();
+
+
+
 
 #if DEBUG
             builder.Logging.AddDebug();

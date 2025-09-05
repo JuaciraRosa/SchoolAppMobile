@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="AppSchoolMaui.Pages.AboutPage"
+              xmlns:vm="clr-namespace:AppSchoolMaui.ViewModels"
+             Title="AboutPage">
+    <ScrollView>
+        <VerticalStackLayout Padding="24" Spacing="16">
+
+            <!-- App icon (use qualquer imagem tua) -->
+            <Image Source="course.png" WidthRequest="72" HeightRequest="72"
+             HorizontalOptions="Center" Margin="0,8"/>
+
+            <Label Text="{Binding AppName}" FontSize="20" FontAttributes="Bold" HorizontalTextAlignment="Center"/>
+            <Label Text="{Binding Author}" Opacity="0.8" HorizontalTextAlignment="Center"/>
+
+            <Frame Padding="12" CornerRadius="12" HasShadow="True">
+                <Grid RowDefinitions="Auto,Auto,Auto">
+                    <Label Grid.Row="0" Text="{Binding Version, StringFormat='Version: {0}'}"/>
+                    <Label Grid.Row="1" Text="{Binding Build,   StringFormat='Build: {0}'}"/>
+                    <Label Grid.Row="2" Text="{Binding ReleaseDate, StringFormat='Release date: {0}'}"/>
+                </Grid>
+            </Frame>
+
+            <HorizontalStackLayout Spacing="12" HorizontalOptions="Center">
+                <Button Text="Website" Command="{Binding OpenWebsiteCommand}" />
+                <Button Text="Copiar versão" Command="{Binding CopyVersionCommand}" />
+            </HorizontalStackLayout>
+
+            <Label Text="© Todos os direitos reservados." FontSize="12" Opacity="0.7" HorizontalTextAlignment="Center" />
+        </VerticalStackLayout>
+    </ScrollView>
+</ContentPage>

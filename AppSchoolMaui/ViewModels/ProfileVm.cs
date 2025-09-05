@@ -45,44 +45,74 @@ namespace AppSchoolMaui.ViewModels
         public async Task LoadAsync()
         {
             var me = await _api.GetProfileAsync();
-            FullName = me.FullName; Email = me.Email; Role = me.Role; PhotoUrlRaw = me.ProfilePhoto;
+            FullName = me.FullName;
+            Email = me.Email;
+            Role = me.Role;
+            PhotoUrlRaw = me.ProfilePhoto;
+
             try
             {
                 var uri = await _api.ResolvePhotoUriAsync(me.ProfilePhoto);
-                Photo = uri is null ? null : ImageSource.FromUri(uri);
+                Photo = uri is null ? "user.png" : ImageSource.FromUri(uri); // placeholder opcional
             }
-            catch { Photo = null; }
+            catch { Photo = "user.png"; }
         }
-
         async Task SaveAsync()
         {
             if (IsBusy) return; IsBusy = true;
             try
             {
-                await _api.UpdateProfileAsync(FullName, PhotoUrlRaw);
+                // grava nome e/ou caminho da foto
+                var updated = await _api.UpdateProfileAsync(FullName, PhotoUrlRaw);
+
+                // reflete o que ficou salvo no servidor
+                PhotoUrlRaw = updated.ProfilePhoto;
+                var uri = await _api.ResolvePhotoUriAsync(updated.ProfilePhoto);
+                if (uri is not null) Photo = ImageSource.FromUri(uri);
+
                 await _notify.ShowAsync("Perfil", "Dados atualizados");
+            }
+            catch (Exception ex)
+            {
+                await _notify.ShowAsync("Erro", ex.Message);
             }
             finally { IsBusy = false; }
         }
+
 
         async Task PickAsync()
         {
             try
             {
-                var file = await FilePicker.PickAsync(new PickOptions { PickerTitle = "Choose a picture", FileTypes = FilePickerFileType.Images });
+                var file = await FilePicker.PickAsync(new PickOptions
+                {
+                    PickerTitle = "Choose a picture",
+                    FileTypes = FilePickerFileType.Images
+                });
                 if (file is null) return;
 
                 await using var s = await file.OpenReadAsync();
-                using var ms = new MemoryStream(); await s.CopyToAsync(ms);
+                using var ms = new MemoryStream();
+                await s.CopyToAsync(ms);
                 var bytes = ms.ToArray();
 
-                Photo = ImageSource.FromStream(() => new MemoryStream(bytes));
+                // 1) upload do ficheiro
                 var up = await _api.UploadStudentProfilePhotoAsync(bytes, file.FileName);
-                PhotoUrlRaw = up.url;
+
+                // 2) atualiza perfil no servidor guardando o PATH (é isto que o site lê)
+                var updated = await _api.UpdateProfileAsync(null, up.path);
+
+                // 3) atualiza UI (mostra a URL absoluta; cache-buster para ver na hora)
+                PhotoUrlRaw = updated.ProfilePhoto; // normalmente igual ao up.path
+                Photo = ImageSource.FromUri(new Uri($"{up.url}?t={DateTimeOffset.UtcNow.ToUnixTimeSeconds()}"));
 
                 await _notify.ShowAsync("Perfil", "Foto atualizada");
             }
-            catch (OperationCanceledException) { }
+            catch (OperationCanceledException) { /* user cancelou */ }
+            catch (Exception ex)
+            {
+                await _notify.ShowAsync("Erro", ex.Message);
+            }
         }
     }
 }
