@@ -11,7 +11,6 @@ public partial class LoginPage : ContentPage
         BindingContext = vm;
     }
 
-    private async void OnOpenReset(object sender, EventArgs e)
-    => await Shell.Current.GoToAsync(nameof(ResetPasswordPage));
+  
 
 }

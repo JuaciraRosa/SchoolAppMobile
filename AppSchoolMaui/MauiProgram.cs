@@ -43,8 +43,7 @@ namespace AppSchoolMaui
             builder.Services.AddSingleton<AboutPage>();
             builder.Services.AddSingleton<ChangePasswordVm>();
             builder.Services.AddSingleton<ChangePasswordPage>();
-            builder.Services.AddSingleton<ResetPasswordVm>();
-            builder.Services.AddSingleton<ResetPasswordPage>();
+         
 
 
 

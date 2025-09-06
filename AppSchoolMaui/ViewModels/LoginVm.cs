@@ -12,26 +12,21 @@ namespace AppSchoolMaui.ViewModels
         public sealed class LoginVm : BaseViewModel
         {
             private readonly ApiService _api;
-            private readonly IAppNotifications _notify;
 
-            public LoginVm(ApiService api, IAppNotifications notify)
+            public LoginVm(ApiService api)
             {
                 _api = api;
-                _notify = notify;
-
                 LoginCommand = new Command(async () => await LoginAsync(), () => !IsBusy);
                 ForgotCommand = new Command(async () => await _api.ForgotOnWebAsync(Email?.Trim()), () => !IsBusy);
                 GuestCommand = new Command(async () => await GuestAsync(), () => !IsBusy);
             }
 
-            // ====== Bindables ======
-            private string? _email = "";
             public string? Email { get => _email; set => Set(ref _email, value); }
+            private string? _email = "";
 
-            private string? _password = "";
             public string? Password { get => _password; set => Set(ref _password, value); }
+            private string? _password = "";
 
-            private bool _isBusy;
             public bool IsBusy
             {
                 get => _isBusy;
@@ -43,35 +38,16 @@ namespace AppSchoolMaui.ViewModels
                     GuestCommand.ChangeCanExecute();
                 }
             }
+            private bool _isBusy;
 
+            public string? Msg { get => _msg; set { Set(ref _msg, value); HasMsg = !string.IsNullOrWhiteSpace(value); } }
             private string? _msg;
-            public string? Msg
-            {
-                get => _msg;
-                set { Set(ref _msg, value); HasMsg = !string.IsNullOrWhiteSpace(value); }
-            }
-
-            private bool _hasMsg;
             public bool HasMsg { get => _hasMsg; private set => Set(ref _hasMsg, value); }
+            private bool _hasMsg;
 
-            // ====== Commands ======
             public Command LoginCommand { get; }
             public Command ForgotCommand { get; }
             public Command GuestCommand { get; }
-
-            // ====== Actions ======
-
-            // callback único para o polling (reaproveitado no "burst" e no intervalo normal)
-            private async Task NotifyAsync(List<ApiService.FeedItem> items)
-            {
-                foreach (var it in items)
-                {
-                    var text = (it.Type ?? "").ToUpperInvariant() == "MARK"
-                        ? $"Nova nota em {it.Subject}: {it.Value}"
-                        : $"Atualização em {it.Subject}";
-                    await _notify.ShowAsync("Atualização", text);
-                }
-            }
 
             private async Task LoginAsync()
             {
@@ -94,22 +70,13 @@ namespace AppSchoolMaui.ViewModels
                 var settings = await center.GetNotificationSettingsAsync();
                 if (settings.AuthorizationStatus != UserNotifications.UNAuthorizationStatus.Authorized)
                 {
-                    var result = await center.RequestAuthorizationAsync(
+                    _ = await center.RequestAuthorizationAsync(
                         UserNotifications.UNAuthorizationOptions.Alert
-                        | UserNotifications.UNAuthorizationOptions.Sound
-                        | UserNotifications.UNAuthorizationOptions.Badge);
+                      | UserNotifications.UNAuthorizationOptions.Sound
+                      | UserNotifications.UNAuthorizationOptions.Badge);
                 }
 #endif
-                    // LIGA o polling:
-                    // - dispara JÁ (leading-edge)
-                    // - burst de 2s por 30s
-                    // - depois intervalo normal de 10s
-                    _api.StartFeedPolling(
-                        TimeSpan.FromSeconds(10),
-                        NotifyAsync,
-                        initialBurst: TimeSpan.FromSeconds(30)
-                    );
-
+                    // NADA de StartFeedPolling aqui.
                     await Shell.Current.GoToAsync("//app");
                 }
                 catch (HttpRequestException ex) { Msg = ex.Message; }
@@ -121,19 +88,13 @@ namespace AppSchoolMaui.ViewModels
             {
                 try
                 {
-                    // para o polling ao sair
-                    _api.StopFeedPolling();
-
-                    await _api.LogoutAsync();          // remove token/Authorization
-                    Preferences.Set("guest", true);    // modo convidado
-                    await Shell.Current.GoToAsync("//public"); // vai para página pública
+                    _api.StopFeedPolling(); // por segurança
+                    await _api.LogoutAsync();
+                    Preferences.Set("guest", true);
+                    await Shell.Current.GoToAsync("//public");
                 }
                 catch (Exception ex) { Msg = ex.Message; }
             }
         }
     }
-
-
-
-
 }

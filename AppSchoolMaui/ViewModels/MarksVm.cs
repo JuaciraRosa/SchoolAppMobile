@@ -18,10 +18,15 @@ namespace AppSchoolMaui.ViewModels
 
         public async Task LoadAsync()
         {
-            var list = await _api.GetMarksAsync(); // use seu endpoint real
+            var list = await _api.GetMarksAsync(); // endpoint real
             Items.Clear();
             foreach (var m in list) Items.Add(m);
+
+
+
         }
+
+
     }
 
 }

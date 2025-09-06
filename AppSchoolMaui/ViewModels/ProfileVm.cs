@@ -45,18 +45,16 @@ namespace AppSchoolMaui.ViewModels
         public async Task LoadAsync()
         {
             var me = await _api.GetProfileAsync();
-            FullName = me.FullName;
-            Email = me.Email;
-            Role = me.Role;
-            PhotoUrlRaw = me.ProfilePhoto;
+            FullName = me.FullName; Email = me.Email; Role = me.Role; PhotoUrlRaw = me.ProfilePhoto;
 
             try
             {
                 var uri = await _api.ResolvePhotoUriAsync(me.ProfilePhoto);
-                Photo = uri is null ? "user.png" : ImageSource.FromUri(uri); // placeholder opcional
+                Photo = uri is null ? null : ImageSource.FromUri(uri);
             }
-            catch { Photo = "user.png"; }
+            catch { Photo = null; }
         }
+
         async Task SaveAsync()
         {
             if (IsBusy) return; IsBusy = true;
@@ -84,35 +82,27 @@ namespace AppSchoolMaui.ViewModels
         {
             try
             {
-                var file = await FilePicker.PickAsync(new PickOptions
-                {
-                    PickerTitle = "Choose a picture",
-                    FileTypes = FilePickerFileType.Images
-                });
+                var file = await FilePicker.PickAsync(
+                    new PickOptions { PickerTitle = "Choose a picture", FileTypes = FilePickerFileType.Images });
                 if (file is null) return;
 
                 await using var s = await file.OpenReadAsync();
-                using var ms = new MemoryStream();
-                await s.CopyToAsync(ms);
+                using var ms = new MemoryStream(); await s.CopyToAsync(ms);
                 var bytes = ms.ToArray();
 
-                // 1) upload do ficheiro
+             
                 var up = await _api.UploadStudentProfilePhotoAsync(bytes, file.FileName);
+                PhotoUrlRaw = up.url;
 
-                // 2) atualiza perfil no servidor guardando o PATH (é isto que o site lê)
-                var updated = await _api.UpdateProfileAsync(null, up.path);
-
-                // 3) atualiza UI (mostra a URL absoluta; cache-buster para ver na hora)
-                PhotoUrlRaw = updated.ProfilePhoto; // normalmente igual ao up.path
-                Photo = ImageSource.FromUri(new Uri($"{up.url}?t={DateTimeOffset.UtcNow.ToUnixTimeSeconds()}"));
+          
+                var uri = new Uri(up.url + (up.url.Contains('?') ? "&" : "?") + "t=" + DateTimeOffset.UtcNow.ToUnixTimeSeconds());
+                Photo = ImageSource.FromUri(uri);
 
                 await _notify.ShowAsync("Perfil", "Foto atualizada");
             }
-            catch (OperationCanceledException) { /* user cancelou */ }
-            catch (Exception ex)
-            {
-                await _notify.ShowAsync("Erro", ex.Message);
-            }
+            catch (OperationCanceledException) { }
         }
+
     }
 }
+

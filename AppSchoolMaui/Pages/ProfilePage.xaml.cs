@@ -1,5 +1,7 @@
+using AppSchoolMaui.Helpers;
 using AppSchoolMaui.Services;
 using AppSchoolMaui.ViewModels;
+using System.Net;
 
 namespace AppSchoolMaui.Pages;
 public partial class ProfilePage : ContentPage
@@ -12,30 +14,54 @@ public partial class ProfilePage : ContentPage
     public ProfilePage(ProfileVm vm, ApiService api)
     {
         InitializeComponent();
-        _vm = vm;             // <-- FALTAVA isto
+        _vm = vm;             
         _api = api;
 
-        BindingContext = _vm;  // <-- usa o VM injetado; não uses ServiceHelper aqui
+        BindingContext = _vm;  
     }
 
     protected override async void OnAppearing()
     {
         base.OnAppearing();
-        await _vm.LoadAsync();
+        try
+        {
+            await _vm.LoadAsync();
+        }
+        catch (HttpRequestException ex)
+        {
+            await DisplayAlert("Aviso", ex.ToUserMessage(), "OK");
+            if (ex.StatusCode == HttpStatusCode.Unauthorized)
+                await Shell.Current.GoToAsync("//login");
+        }
+        catch (Exception ex)
+        {
+            await DisplayAlert("Erro", ex.Message, "OK");
+        }
     }
 
-    // Só mantém estes handlers se o XAML usar Clicked=. Se usares Command=, podes apagar ambos.
-    private async void OnChangePassword(object s, EventArgs e)
-        => await _api.ChangePasswordOnWebAsync();
 
+    private async void OnChangePassword(object s, EventArgs e)
+    {
+        try { await _api.ChangePasswordOnWebAsync(); }
+        catch (HttpRequestException ex) { await DisplayAlert("Aviso", ex.ToUserMessage(), "OK"); }
+        catch (Exception ex) { await DisplayAlert("Erro", ex.Message, "OK"); }
+    }
     private async void OnOpenEnrollments(object s, EventArgs e)
-        => await Shell.Current.GoToAsync(nameof(EnrollmentRequestsPage));
+    {
+        try { await Shell.Current.GoToAsync(nameof(EnrollmentRequestsPage)); }
+        catch (Exception ex) { await DisplayAlert("Erro", ex.Message, "OK"); }
+    }
 
     private async void OnOpenAbout(object sender, EventArgs e)
-    => await Shell.Current.GoToAsync(nameof(AboutPage));
+    {
+        try { await Shell.Current.GoToAsync(nameof(AboutPage)); }
+        catch (Exception ex) { await DisplayAlert("Erro", ex.Message, "OK"); }
+    }
 
     private async void OnOpenChangePassword(object s, EventArgs e)
-    => await Shell.Current.GoToAsync(nameof(ChangePasswordPage));
-
+    {
+        try { await Shell.Current.GoToAsync(nameof(ChangePasswordPage)); }
+        catch (Exception ex) { await DisplayAlert("Erro", ex.Message, "OK"); }
+    }
 
 }

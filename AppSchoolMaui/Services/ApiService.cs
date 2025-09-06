@@ -1,5 +1,8 @@
-﻿using System;
+﻿using Microsoft.Maui.ApplicationModel; 
+using Microsoft.Maui.Storage; 
+using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 using System.Net;
 using System.Net.Http.Headers;
@@ -7,8 +10,6 @@ using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Threading.Tasks;
-using Microsoft.Maui.Storage; 
-using Microsoft.Maui.ApplicationModel; 
     
 
 
@@ -179,7 +180,7 @@ namespace AppSchoolMaui.Services
         public bool HasAuth =>
        _http.DefaultRequestHeaders.Authorization is { Parameter.Length: > 0 };
 
-        // ApiService.cs
+       
         public Task ChangePasswordOnWebAsync()
        => OpenUrlSafeAsync("https://www.escolainfosys.somee.com/Account/ChangePassword");
 
@@ -342,7 +343,80 @@ namespace AppSchoolMaui.Services
         }
 
         // ========= Feed =========
+        #region Feed polling & change-detection
 
+        // --- Persistência de IDs vistos (evita repetir e também permite aceitar data antiga) ---
+        private const string SeenIdsKey = "feed_seen_ids_csv";
+        private const int SeenIdsCap = 200;                     // guarda só os últimos 200
+        private readonly LinkedList<int> _seenIds = new();
+        private readonly HashSet<int> _seenIdsSet = new();
+
+        private void LoadSeenIds()
+        {
+            _seenIds.Clear(); _seenIdsSet.Clear();
+            var csv = Preferences.Get(SeenIdsKey, "");
+            if (string.IsNullOrWhiteSpace(csv)) return;
+
+            foreach (var p in csv.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
+                if (int.TryParse(p, out var id) && _seenIdsSet.Add(id))
+                    _seenIds.AddLast(id);
+        }
+
+        private void SaveSeenIds()
+        {
+            while (_seenIds.Count > SeenIdsCap)
+            {
+                var first = _seenIds.First!.Value;
+                _seenIds.RemoveFirst();
+                _seenIdsSet.Remove(first);
+            }
+            Preferences.Set(SeenIdsKey, string.Join(",", _seenIds));
+        }
+
+        // --- Persistência de "estado" por item (para detectar UPDATE do conteúdo) ---
+        private const string FeedDigestsKey = "feed_item_digests_json";
+        private readonly Dictionary<int, string> _digests = new();
+
+        private void LoadDigests()
+        {
+            _digests.Clear();
+            var json = Preferences.Get(FeedDigestsKey, "");
+            if (string.IsNullOrWhiteSpace(json)) return;
+            try
+            {
+                var fromPref = JsonSerializer.Deserialize<Dictionary<int, string>>(json);
+                if (fromPref is null) return;
+                foreach (var kv in fromPref) _digests[kv.Key] = kv.Value;
+            }
+            catch { /* ignora corrupções/versão antiga */ }
+        }
+
+        private void SaveDigests()
+        {
+            try
+            {
+                // limita tamanho aproximando dos IDs mantidos
+                if (_digests.Count > SeenIdsCap)
+                {
+                    foreach (var id in _digests.Keys.Except(_seenIdsSet).Take(_digests.Count - SeenIdsCap).ToList())
+                        _digests.Remove(id);
+                }
+                Preferences.Set(FeedDigestsKey, JsonSerializer.Serialize(_digests));
+            }
+            catch { }
+        }
+
+        // fingerprint do conteúdo da nota (valor/aprovado/tipo/data)
+        private static string MakeDigest(FeedItem i)
+        {
+            var val = i.Value?.ToString("0.###", CultureInfo.InvariantCulture) ?? "";
+            var pass = i.IsPassed?.ToString() ?? "";
+            var eval = i.EvaluationType ?? "";
+            var date = i.Date.ToUniversalTime().ToString("o");
+            return $"{val}|{pass}|{eval}|{date}";
+        }
+
+        // DTOs do feed
         public record FeedItem(string Type, int Id, int SubjectId, string? Subject,
                                DateTime Date, float? Value, string? EvaluationType, bool? IsPassed);
         public record FeedResponse(DateTime since, int count, List<FeedItem> items);
@@ -352,45 +426,41 @@ namespace AppSchoolMaui.Services
             var url = $"{BaseUrl}/api/feed";
             if (sinceUtc is not null)
                 url += $"?since={Uri.EscapeDataString(sinceUtc.Value.ToUniversalTime().ToString("o"))}";
-
             using var resp = await _http.GetAsync(url, ct);
             return await Read<FeedResponse>(resp);
         }
 
-        // polling simples para avisos (usado após login)
         private System.Timers.Timer? _timer;
         private DateTime? _lastSince;
 
-      
-        private readonly HashSet<int> _notifiedIds = new();      // evita alertas repetidos na sessão
-        private const string LastFeedSeenKey = "last_feed_seen_utc"; // chave no Preferences
-        private DateTime _lastSeenUtc = DateTime.MinValue;           // último item visto (UTC)
+        private readonly HashSet<int> _notifiedIds = new();      // evita repetição na sessão
+        private const string LastFeedSeenKey = "last_feed_seen_utc";
+        private DateTime _lastSeenUtc = DateTime.MinValue;
         private DateTime _burstUntilUtc;
+
+        // >>> Evento opcional para páginas interessadas (ex.: MarksPage)
+        public event EventHandler<List<FeedItem>>? FeedArrived;
 
         public void StartFeedPolling(TimeSpan interval, Func<List<FeedItem>, Task> onItems, TimeSpan? initialBurst = null)
         {
             _timer?.Stop();
             _timer?.Dispose();
 
-            // carrega último visto (mantém tua lógica atual)
+            // ponteiro temporal
             var saved = Preferences.Get(LastFeedSeenKey, string.Empty);
-            if (DateTime.TryParse(saved, null, System.Globalization.DateTimeStyles.RoundtripKind, out var d))
-            {
-                _lastSeenUtc = d.Kind == DateTimeKind.Utc ? d : d.ToUniversalTime();
-                var now = DateTime.UtcNow;
-                if (_lastSeenUtc > now) _lastSeenUtc = now; // clamp se relógio mudou
-            }
-            else
-            {
-                _lastSeenUtc = DateTime.MinValue;
-            }
+            _lastSeenUtc = DateTime.TryParse(saved, null, DateTimeStyles.RoundtripKind, out var d)
+                ? (d.Kind == DateTimeKind.Utc ? d : d.ToUniversalTime())
+                : DateTime.MinValue;
 
-            // since inicial
             _lastSince = _lastSeenUtc == DateTime.MinValue
                 ? DateTime.UtcNow.AddDays(-7)
-                : _lastSeenUtc.AddSeconds(-1);
+                : _lastSeenUtc.AddMilliseconds(-500); // pequena margem
 
-            // burst: 2s por 30s (ou o valor que passar)
+            // histórico
+            LoadSeenIds();
+            LoadDigests();
+
+            _notifiedIds.Clear();
             var burst = initialBurst ?? TimeSpan.FromSeconds(30);
             _burstUntilUtc = DateTime.UtcNow + burst;
 
@@ -402,7 +472,6 @@ namespace AppSchoolMaui.Services
 
             _timer.Elapsed += async (_, __) =>
             {
-                // quando acabar o burst, volta pro intervalo normal
                 if (DateTime.UtcNow > _burstUntilUtc && Math.Abs(_timer.Interval - interval.TotalMilliseconds) > 0.1)
                     _timer.Interval = interval.TotalMilliseconds;
 
@@ -411,7 +480,7 @@ namespace AppSchoolMaui.Services
 
             _timer.Start();
 
-            // >>> leading-edge: dispara já, sem esperar o primeiro intervalo
+            // leading-edge: checa já
             _ = FeedTickAsync(onItems);
         }
 
@@ -420,22 +489,46 @@ namespace AppSchoolMaui.Services
             try
             {
                 var data = await GetFeedAsync(_lastSince);
+                var incoming = (data.items ?? new()).OrderBy(i => i.Date).ToList();
+                if (incoming.Count == 0) return;
 
-                var fresh = data.items
-                    .Where(i => i.Date.ToUniversalTime() > _lastSeenUtc && _notifiedIds.Add(i.Id))
-                    .OrderBy(i => i.Date)
-                    .ToList();
-
-                if (fresh.Count > 0)
+                var fresh = new List<FeedItem>();
+                foreach (var i in incoming)
                 {
-                    await onItems(fresh);
+                    var utc = i.Date.ToUniversalTime();
+                    var isNewById = !_seenIdsSet.Contains(i.Id) && _notifiedIds.Add(i.Id);
+                    var isNewByDate = utc > _lastSeenUtc;
 
-                    _lastSeenUtc = fresh.Max(i => i.Date.ToUniversalTime());
+                    // detecta mudança de conteúdo mesmo mantendo a mesma data/Id
+                    var digest = MakeDigest(i);
+                    var isChanged = !_digests.TryGetValue(i.Id, out var old) || !string.Equals(old, digest, StringComparison.Ordinal);
+
+                    if (isNewById || isNewByDate || isChanged)
+                        fresh.Add(i);
+                }
+
+                // 1) snapshot: atualiza digests e “vistos” com TUDO que chegou
+                foreach (var item in incoming)
+                {
+                    _digests[item.Id] = MakeDigest(item);
+                    if (_seenIdsSet.Add(item.Id)) _seenIds.AddLast(item.Id);
+                }
+                SaveDigests();
+                SaveSeenIds();
+
+                // 2) avança ponteiro temporal
+                var maxFresh = fresh.Max(i => i.Date.ToUniversalTime());
+                if (maxFresh > _lastSeenUtc)
+                {
+                    _lastSeenUtc = maxFresh;
                     Preferences.Set(LastFeedSeenKey, _lastSeenUtc.ToString("o"));
-
-                    // “since” levemente antes para não perder a borda inclusiva
                     _lastSince = _lastSeenUtc.AddSeconds(-1);
                 }
+
+                // 3) só agora dispara os listeners/callback (uma única vez)
+                try { FeedArrived?.Invoke(this, fresh); } catch { }
+                await onItems(fresh);
+
             }
             catch
             {
@@ -443,10 +536,8 @@ namespace AppSchoolMaui.Services
             }
         }
 
-        public Task ForceFeedCheckAsync(Func<List<FeedItem>, Task> onItems)
-    => FeedTickAsync(onItems);
-
-
+        // checagem imediata (sem esperar o timer)
+        public Task ForceFeedCheckAsync() => FeedTickAsync(_ => Task.CompletedTask);
 
         public void StopFeedPolling()
         {
@@ -454,16 +545,23 @@ namespace AppSchoolMaui.Services
             _timer?.Dispose();
             _timer = null;
             _lastSince = null;
-            _notifiedIds.Clear(); /*  lembra o último visto*/
+            _notifiedIds.Clear();
         }
 
         public void ResetFeedSeen()
         {
             Preferences.Remove(LastFeedSeenKey);
+            Preferences.Remove(SeenIdsKey);
+            Preferences.Remove(FeedDigestsKey);
             _lastSeenUtc = DateTime.MinValue;
+
+            _seenIds.Clear(); _seenIdsSet.Clear();
+            _digests.Clear();
             _notifiedIds.Clear();
         }
 
+        #endregion
+        // ======== FIM Feed =========
 
 
 
