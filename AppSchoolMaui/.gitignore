@@ -11,3 +11,16 @@ obj/
 *.keystore
 key.keystore
 secrets.json
+# Build
+bin/
+obj/
+.vs/
+
+# Artefatos
+*.apk
+*.aab
+
+# Chaves/segredos
+*.keystore
+key.keystore
+secrets.json
