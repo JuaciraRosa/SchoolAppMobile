@@ -13,7 +13,7 @@ namespace AppSchoolMaui.ViewModels
         public string Version     => AppInfo.Current.VersionString;
         public string Build       => AppInfo.Current.BuildString;
         public string Author      => "Juacira Rosa";
-        public string ReleaseDate => "2025-09-10";
+        public string ReleaseDate => "2025-09-11";
 
         public ICommand OpenWebsiteCommand { get; }
         public ICommand CopyVersionCommand { get; }
