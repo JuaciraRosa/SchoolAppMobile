@@ -251,18 +251,50 @@ namespace AppSchoolMaui.Services
             return await Read<UploadPhotoResp>(resp);
         }
 
-        // Converte string (fname / caminho relativo / url absoluta) em URI absolute
+        private const string DefaultAvatarPath = "/uploads/default.png";
+
         public Task<Uri?> ResolvePhotoUriAsync(string? pathOrUrl)
         {
+            // 1) vazio => padrão
             if (string.IsNullOrWhiteSpace(pathOrUrl))
-                return Task.FromResult<Uri?>(null);
+                return Task.FromResult<Uri?>(new Uri($"{WebBase}{DefaultAvatarPath}"));
 
+            // 2) já é absoluta
             if (Uri.TryCreate(pathOrUrl, UriKind.Absolute, out var abs))
                 return Task.FromResult<Uri?>(abs);
 
-            var rel = pathOrUrl.TrimStart('/');
-            var url = $"{BaseUrl}/uploads/{rel}";
+            // 3) normaliza relativos (ficheiro, uploads/..., wwwroot/uploads/...)
+            var p = pathOrUrl.Trim().Replace('\\', '/').TrimStart('/');
+            if (p.StartsWith("wwwroot/", StringComparison.OrdinalIgnoreCase))
+                p = p.Substring("wwwroot/".Length);
+
+            var i = p.IndexOf("uploads/", StringComparison.OrdinalIgnoreCase);
+            if (i >= 0) p = p.Substring(i + "uploads/".Length);
+
+            var url = $"{WebBase}/uploads/{p}";
             return Task.FromResult<Uri?>(new Uri(url));
+        }
+
+
+        public static string NormalizeUploadPath(string? urlOrPath)
+        {
+            if (string.IsNullOrWhiteSpace(urlOrPath)) return string.Empty;
+
+            // Se for URL absoluta, extrai o caminho
+            if (Uri.TryCreate(urlOrPath, UriKind.Absolute, out var abs))
+            {
+                var path = abs.AbsolutePath; // ex.: /uploads/abc.jpg
+                return path.StartsWith("/uploads/", StringComparison.OrdinalIgnoreCase)
+                    ? path
+                    : path; // mantém o que vier do servidor
+            }
+
+            var p = urlOrPath.Trim();
+            if (!p.StartsWith("/")) p = "/" + p;
+            if (!p.StartsWith("/uploads/", StringComparison.OrdinalIgnoreCase))
+                p = "/uploads/" + p.TrimStart('/');
+
+            return p;
         }
 
         private static string GetMime(string fileName)

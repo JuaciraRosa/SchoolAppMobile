@@ -1,54 +1,89 @@
 <?xml version="1.0" encoding="utf-8" ?>
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:vm="clr-namespace:AppSchoolMaui.ViewModels"
+             x:DataType="vm:ProfileVm"
              x:Class="AppSchoolMaui.Pages.ProfilePage"
              Title="ProfilePage">
 
     <ScrollView>
         <VerticalStackLayout Padding="20" Spacing="16">
-            <Grid HorizontalOptions="Center" WidthRequest="120" HeightRequest="120">
+
+            <!-- Avatar -->
+            <Grid HorizontalOptions="Center"
+                  WidthRequest="120" HeightRequest="120">
+                <!-- Foto -->
                 <Image Aspect="AspectFill"
-       Source="{Binding Photo}">
+                       Source="{Binding Photo}">
                     <Image.Clip>
-                        <EllipseGeometry Center="60,60" RadiusX="60" RadiusY="60"/>
+                        <EllipseGeometry Center="60,60" RadiusX="60" RadiusY="60" />
                     </Image.Clip>
-                    <Image.GestureRecognizers>
-                        <TapGestureRecognizer Command="{Binding PickPhotoCommand}"/>
-                    </Image.GestureRecognizers>
                 </Image>
 
-                <Border BackgroundColor="#66000000" StrokeShape="RoundRectangle 16"
-                HorizontalOptions="End" VerticalOptions="End" Padding="4" Margin="4">
-                    <Label Text="📷" FontSize="12" TextColor="White"/>
+                <!-- Placeholder quando não houver foto -->
+                <Image Aspect="AspectFill"
+                       Source="avatar.png">
+                    <Image.Clip>
+                        <EllipseGeometry Center="60,60" RadiusX="60" RadiusY="60" />
+                    </Image.Clip>
+                    <Image.Triggers>
+                        <DataTrigger TargetType="Image"
+                                     Binding="{Binding Photo}"
+                                     Value="{x:Null}">
+                            <Setter Property="IsVisible" Value="True" />
+                        </DataTrigger>
+                        <DataTrigger TargetType="Image"
+                                     Binding="{Binding Photo}"
+                                     Value="{x:Null}">
+                            <!-- o inverso: se tiver Photo, esconde -->
+                            <Setter Property="IsVisible" Value="True" />
+                        </DataTrigger>
+                    </Image.Triggers>
+                </Image>
+
+                <!-- Ícone da câmera -->
+                <Border BackgroundColor="#66000000"
+                        StrokeShape="RoundRectangle 16"
+                        HorizontalOptions="End"
+                        VerticalOptions="End"
+                        Padding="4" Margin="4">
+                    <Label Text="📷" FontSize="12" TextColor="White" />
                 </Border>
+
+                <!-- Torna TUDO clicável para trocar a foto -->
+                <Grid.GestureRecognizers>
+                    <TapGestureRecognizer Command="{Binding PickPhotoCommand}" />
+                </Grid.GestureRecognizers>
             </Grid>
 
-            <Entry Placeholder="Full name" Text="{Binding FullName}"/>
-            <Entry Placeholder="Photo URL" Text="{Binding PhotoUrlRaw}" IsVisible="False"/>
-            <Button Text="Save" Command="{Binding SaveCommand}"/>
-             
+            <Entry Placeholder="Full name" Text="{Binding FullName}" />
+            <!-- Não precisa mais expor a URL; deixe oculto ou remova -->
+            <Entry Placeholder="Photo URL" Text="{Binding PhotoUrlRaw}" IsVisible="False" />
+
+            <Button Text="Save" Command="{Binding SaveCommand}" />
+
             <Frame Padding="12" HasShadow="True">
                 <VerticalStackLayout Spacing="4">
-                    <Label Text="{Binding Email}"/>
-                    <Label Text="{Binding Role}"/>
+                    <Label Text="{Binding Email}" />
+                    <Label Text="{Binding Role}" />
                 </VerticalStackLayout>
             </Frame>
+
             <Button Text="Enrollment requests"
-        Margin="0,8,0,0"
-        Command="{Binding OpenEnrollmentRequestsCommand}" />
+                    Margin="0,8,0,0"
+                    Command="{Binding OpenEnrollmentRequestsCommand}" />
 
             <Button Text="Change password (website)"
-        Margin="0,4,0,0"
-        Command="{Binding ChangePasswordCommand}" />
+                    Margin="0,4,0,0"
+                    Command="{Binding ChangePasswordCommand}" />
 
-            <Button Text="Change password" Margin="0,4,0,0" Clicked="OnOpenChangePassword"/>
+            <Button Text="Change password"
+                    Margin="0,4,0,0"
+                    Clicked="OnOpenChangePassword" />
 
-
-            <Button Text="About" Margin="0,4,0,0" Clicked="OnOpenAbout"/>
-
-
-
-
+            <Button Text="About"
+                    Margin="0,4,0,0"
+                    Clicked="OnOpenAbout" />
 
         </VerticalStackLayout>
     </ScrollView>
