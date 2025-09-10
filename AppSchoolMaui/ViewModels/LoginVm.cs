@@ -7,8 +7,7 @@ using System.Threading.Tasks;
 
 namespace AppSchoolMaui.ViewModels
 {
-    namespace AppSchoolMaui.ViewModels
-    {
+   
         public sealed class LoginVm : BaseViewModel
         {
             private readonly ApiService _api;
@@ -84,17 +83,20 @@ namespace AppSchoolMaui.ViewModels
                 finally { IsBusy = false; }
             }
 
-            private async Task GuestAsync()
+        private async Task GuestAsync()
+        {
+            try
             {
-                try
-                {
-                    _api.StopFeedPolling(); // por segurança
-                    await _api.LogoutAsync();
-                    Preferences.Set("guest", true);
-                    await Shell.Current.GoToAsync("//public");
-                }
-                catch (Exception ex) { Msg = ex.Message; }
+                _api.StopFeedPolling();       
+                await _api.LogoutAsync();      
+                Preferences.Set("guest", true);
+
+                // limpa o back stack e força público
+                await Shell.Current.GoToAsync("//public", true);
             }
+            catch (Exception ex) { Msg = ex.Message; }
         }
+
     }
+
 }

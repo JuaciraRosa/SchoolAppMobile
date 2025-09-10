@@ -18,6 +18,11 @@ namespace AppSchoolMaui.ViewModels
 
         public List<ApiService.FeedItem> Items { get => _items; set => Set(ref _items, value); }
         List<ApiService.FeedItem> _items = new();
+
+        // >>> NOVO: indica se está autenticado
+        public bool IsLoggedIn { get => _isLoggedIn; private set => Set(ref _isLoggedIn, value); }
+        bool _isLoggedIn;
+
         public async Task LoadAsync()
         {
             Hello = "Hello, guest";
@@ -25,6 +30,10 @@ namespace AppSchoolMaui.ViewModels
 
             // se não há token OU está em modo convidado, não chama endpoints protegidos
             var isGuest = Preferences.Get("guest", false) || !_api.HasAuth;
+
+            // >>> NOVO: refletir no estado
+            IsLoggedIn = !isGuest;
+
             if (isGuest) return;
 
             try
@@ -40,8 +49,12 @@ namespace AppSchoolMaui.ViewModels
                 // token inválido/expirado → regressa a guest silenciosamente
                 await _api.LogoutAsync();
                 Preferences.Set("guest", true);
+
+                // >>> NOVO: garante que a UI vê que não está logado
+                IsLoggedIn = false;
+                Hello = "Hello, guest";
+                Items = new();
             }
         }
-
     }
 }

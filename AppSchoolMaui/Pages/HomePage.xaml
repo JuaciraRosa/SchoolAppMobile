@@ -13,9 +13,10 @@
 
 
     <ContentPage.ToolbarItems>
-        <ToolbarItem Text="Logout" Clicked="OnLogout"/>
+        <ToolbarItem x:Name="LogoutItem" Text="Logout" Clicked="OnLogout"/>
     </ContentPage.ToolbarItems>
-    
+
+
     <VerticalStackLayout Padding="16" Spacing="10">
         <Label x:Name="Hello" FontSize="18"/>
         <Button Text="Refresh" Clicked="OnRefresh"/>

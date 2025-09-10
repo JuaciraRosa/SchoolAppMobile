@@ -1,7 +1,6 @@
 ﻿using AppSchoolMaui.Pages;
 using AppSchoolMaui.Services;
 using AppSchoolMaui.ViewModels;
-using AppSchoolMaui.ViewModels.AppSchoolMaui.ViewModels;
 using Microsoft.Extensions.Logging;
 
 

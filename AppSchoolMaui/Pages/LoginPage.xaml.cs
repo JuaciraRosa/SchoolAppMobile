@@ -1,5 +1,5 @@
 using AppSchoolMaui.ViewModels;
-using AppSchoolMaui.ViewModels.AppSchoolMaui.ViewModels;
+
 
 namespace AppSchoolMaui.Pages;
 

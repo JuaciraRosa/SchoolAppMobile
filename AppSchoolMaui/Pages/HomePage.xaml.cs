@@ -29,10 +29,28 @@ public partial class HomePage : ContentPage
             await _vm.LoadAsync();
             Hello.Text = _vm.Hello;
             List.ItemsSource = _vm.Items;
+
+            // >>> NOVO: mostra/esconde o botão conforme login
+            UpdateLogoutUi();
         }
         catch (HttpRequestException ex)
         {
             await DisplayAlert("Aviso", ex.ToUserMessage(), "OK");
+        }
+    }
+
+    // >>> NOVO: remove/adiciona o ToolbarItem (ToolbarItem não tem IsVisible)
+    void UpdateLogoutUi()
+    {
+        if (_vm.IsLoggedIn)
+        {
+            if (!ToolbarItems.Contains(LogoutItem))
+                ToolbarItems.Add(LogoutItem);
+        }
+        else
+        {
+            if (ToolbarItems.Contains(LogoutItem))
+                ToolbarItems.Remove(LogoutItem);
         }
     }
 
@@ -45,6 +63,8 @@ public partial class HomePage : ContentPage
             _api.StopFeedPolling();
             await _api.LogoutAsync();
             await DisplayAlert("Logout", "Sessão terminada.", "OK");
+
+            // volta para login; quando a Home reaparecer, Load() chamará UpdateLogoutUi()
             await Shell.Current.GoToAsync("//login");
         }
         catch (Exception ex)
